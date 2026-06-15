@@ -19,6 +19,8 @@ export const PLANNING_UI_HTML = `<!DOCTYPE html>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>ADO Planning Workspace</title>
+<!--BOOTSTRAP-->
+
 <style>
   :root {
     --bg: #f5f6f8; --panel: #ffffff; --ink: #1b1f23; --muted: #6b7280;
@@ -38,14 +40,15 @@ export const PLANNING_UI_HTML = `<!DOCTYPE html>
   input, select, textarea { font: inherit; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 5px 7px; background: #fff; }
   textarea { width: 100%; resize: vertical; }
   label { display: block; font-size: 11px; color: var(--muted); margin: 8px 0 3px; text-transform: uppercase; letter-spacing: .03em; }
-  .app { display: grid; grid-template-rows: auto 1fr auto; height: 100vh; }
+  .app { display: grid; grid-template-rows: auto 1fr auto; min-height: 100vh; }
   header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 14px; background: var(--panel); border-bottom: 1px solid var(--line); }
   header h1 { font-size: 15px; margin: 0 12px 0 0; font-weight: 600; }
   header .field { display: flex; flex-direction: column; }
   header .field > span { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
   header .grow { flex: 1; }
   .toggle { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
-  main { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(320px, 2fr) minmax(260px, 1.3fr); gap: 1px; background: var(--line); overflow: hidden; }
+  main { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(320px, 2fr) minmax(260px, 1.3fr); gap: 1px; background: var(--line); overflow: hidden; min-height: 520px; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } .pane { min-height: 240px; } }
   .pane { background: var(--panel); overflow: auto; padding: 12px 14px; }
   .pane h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 8px; }
   .row { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
@@ -78,7 +81,7 @@ export const PLANNING_UI_HTML = `<!DOCTYPE html>
   .insp input, .insp select, .insp textarea { width: 100%; }
   .ac-line { display: flex; gap: 5px; margin-bottom: 4px; }
   .ac-line input { flex: 1; }
-  footer { background: var(--panel); border-top: 1px solid var(--line); padding: 8px 14px; max-height: 26vh; overflow: auto; }
+  footer { background: var(--panel); border-top: 1px solid var(--line); padding: 8px 14px; max-height: 220px; overflow: auto; }
   footer h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 6px; }
   .log { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; white-space: pre-wrap; }
   .pill { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 10px; margin-right: 6px; }

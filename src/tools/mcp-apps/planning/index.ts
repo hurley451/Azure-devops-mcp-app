@@ -74,12 +74,15 @@ function configurePlanningTools(server: McpServer, tokenProvider: () => Promise<
     },
     async ({ project, team }) => {
       try {
-        const bootstrap = { project: project ?? null, team: team ?? null, buildHash: ui.buildHash };
+        const bootstrap = { project: project ?? null, team: team ?? null };
+        // Inject the selected project/team into this call's HTML so the UI prefills the fields.
+        const bootstrapScript = `<script>window.__ADO_PLANNING_BOOTSTRAP__ = ${JSON.stringify(bootstrap).replace(/</g, "\\u003c")};</script>`;
+        const html = ui.html.replace("<!--BOOTSTRAP-->", bootstrapScript);
         return {
           content: [
             {
               type: "resource" as const,
-              resource: { uri: ui.uri, mimeType: ui.mimeType, text: ui.html, _meta: { ui: { prefersBorder: true } } },
+              resource: { uri: ui.uri, mimeType: ui.mimeType, text: html, _meta: { ui: { "prefersBorder": true, "preferred-frame-size": { width: 1100, height: 760 } } } },
             },
             {
               type: "text" as const,
