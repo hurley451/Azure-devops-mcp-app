@@ -2,12 +2,15 @@
 // Licensed under the MIT License.
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { WebApi } from "azure-devops-node-api";
+
+import { configurePlanningTools } from "./mcp-apps/planning/index.js";
 
 const MCP_APPS_TOOLS = {
   ping: "mcp_apps_ping",
 };
 
-function configureMcpAppsTools(server: McpServer) {
+function configureMcpAppsTools(server: McpServer, tokenProvider: () => Promise<string>, connectionProvider: () => Promise<WebApi>, userAgentProvider: () => string) {
   server.tool(MCP_APPS_TOOLS.ping, "A simple ping tool to verify that the mcp-apps domain is enabled.", {}, async () => {
     try {
       return {
@@ -22,6 +25,9 @@ function configureMcpAppsTools(server: McpServer) {
       };
     }
   });
+
+  // ADO Planning Workspace — interactive backlog planning UI and tools.
+  configurePlanningTools(server, tokenProvider, connectionProvider, userAgentProvider);
 }
 
 export { configureMcpAppsTools, MCP_APPS_TOOLS };

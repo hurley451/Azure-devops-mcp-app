@@ -198,6 +198,18 @@ We recommend that you always enable `core` tools so that you can fetch project l
 
 > By default all domains are loaded
 
+### Experimental: ADO Planning Workspace (`mcp-apps`)
+
+This fork adds an experimental `mcp-apps` domain that serves an interactive **ADO Planning Workspace** MCP App for AI-assisted backlog planning (narrative → Epic → Feature → PBI/User Story → Task, with human-in-the-loop review before any work item is created).
+
+`mcp-apps` is **not** enabled when domains are set to `all`; you must opt in explicitly:
+
+```bash
+node dist/index.js YOUR_ORG -d core work work-items mcp-apps
+```
+
+See [docs/MCP_APPS_PLANNING.md](docs/MCP_APPS_PLANNING.md) for setup, Claude Desktop / Claude Code configuration, the security model, dry-run behavior, and known host limitations.
+
 ## 🐥 Project and Team Defaults (local)
 
 You can also configure default Azure DevOps project and team values from `.vscode/mcp.json` using `project` and `team`, so tools can skip selection prompts.

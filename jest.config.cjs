@@ -53,5 +53,9 @@ module.exports = {
     "^(.+)/logger\\.js$": "$1/logger.ts",
     "^(.+)/elicitations\\.js$": "$1/elicitations.ts",
     "^(.+)/content-safety\\.js$": "$1/content-safety.ts",
+    // Generic fallback: strip ".js" from any other relative import so ts-jest
+    // (CommonJS) resolves it to the sibling ".ts" via moduleFileExtensions.
+    // Listed last so the specific mappings above always win.
+    "^(\\.{1,2}/.*)\\.js$": "$1",
   },
 };
