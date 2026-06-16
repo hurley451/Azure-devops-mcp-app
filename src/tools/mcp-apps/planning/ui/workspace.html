@@ -171,6 +171,11 @@
 
   var state = { draft: null, selectedId: null, lastValidation: null, filter: { q: "", type: "", status: "" } };
 
+  // ---- light persistence (R7.6): keep the working draft across reopen ------
+  var STORE_KEY = "ado-planning-draft";
+  function persist(){ try { if (state.draft) localStorage.setItem(STORE_KEY, JSON.stringify(state.draft)); else localStorage.removeItem(STORE_KEY); } catch (e) {} }
+  function restore(){ try { var raw = localStorage.getItem(STORE_KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } }
+
   // ---- MCP postMessage bridge -------------------------------------------
   var CALL_TIMEOUT_MS = 20000;
   var bridge = (function(){
@@ -263,6 +268,7 @@
     renderSummary();
     renderTree();
     renderInspector();
+    persist();
   }
 
   function renderSummary(){
@@ -706,6 +712,12 @@
     var boot = window.__ADO_PLANNING_BOOTSTRAP__;
     if (boot) { if (boot.project) byId("f-project").value = boot.project; if (boot.team) byId("f-team").value = boot.team; }
   } catch (e) {}
+
+  // Restore the last working draft (if any) so the create/view/modify loop survives reopen.
+  if (!state.draft) {
+    var saved = restore();
+    if (saved && saved.items) { loadDraft(saved); log("Restored your last draft (" + saved.items.length + " item(s)). Clear Draft to discard."); }
+  }
 
   render();
   log(bridge.hosted() ? "Connected to MCP host." : "Standalone mode — Import JSON or Load Sample to begin.");
