@@ -36,6 +36,7 @@
     "format": "prettier --write .",
     "format-check": "prettier --check .",
     "clean": "shx rm -rf dist",
+    "pretest": "npm run build:ui",
     "test": "jest"
   },
   "dependencies": {

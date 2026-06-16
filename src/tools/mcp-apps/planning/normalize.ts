@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { DraftWorkItem, DraftWorkItemType, PlanningDraft, SUPPORTED_TYPES, TYPE_ID_PREFIX } from "./types.js";
+import { DraftWorkItem, DraftWorkItemType, isSupportedType, PlanningDraft, TYPE_ID_PREFIX } from "./types.js";
 
 /**
  * Flatten a (possibly nested) list of draft items into a flat array where each
@@ -45,10 +45,6 @@ export function buildTree(flat: DraftWorkItem[]): DraftWorkItem[] {
     }
   }
   return roots;
-}
-
-function isSupportedType(type: unknown): type is DraftWorkItemType {
-  return typeof type === "string" && (SUPPORTED_TYPES as readonly string[]).includes(type);
 }
 
 /**

@@ -145,6 +145,7 @@
   var state = { draft: null, selectedId: null, lastValidation: null };
 
   // ---- MCP postMessage bridge -------------------------------------------
+  var CALL_TIMEOUT_MS = 20000;
   var bridge = (function(){
     var seq = 0, pending = {};
     function hosted(){ return window.parent && window.parent !== window; }
@@ -162,7 +163,7 @@
         var id = "ui-" + (++seq);
         pending[id] = { resolve: resolve, reject: reject };
         window.parent.postMessage({ jsonrpc: "2.0", id: id, method: "tools/call", params: { name: name, arguments: args } }, "*");
-        setTimeout(function(){ if (pending[id]) { delete pending[id]; reject({ message: "Timed out calling " + name }); } }, 20000);
+        setTimeout(function(){ if (pending[id]) { delete pending[id]; reject({ message: "Timed out calling " + name }); } }, CALL_TIMEOUT_MS);
       });
     }
     return { call: call, hosted: hosted };
@@ -534,7 +535,7 @@
   byId("b-create").addEventListener("click", doCreate);
   byId("b-sync").addEventListener("click", doSync);
   byId("f-narrative").addEventListener("input", renderSummary);
-  // Validate button lives in the footer status area via keyboard? Provide an explicit one.
+  // The footer has no Validate trigger by default; inject one before the status area.
   var validateBtn = h("button", { class: "tiny", text: "Validate Draft", onclick: doValidate });
   byId("status").parentNode.insertBefore(validateBtn, byId("status"));
 

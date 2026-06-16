@@ -10,7 +10,7 @@ const MCP_APPS_TOOLS = {
   ping: "mcp_apps_ping",
 };
 
-function configureMcpAppsTools(server: McpServer, tokenProvider: () => Promise<string>, connectionProvider: () => Promise<WebApi>, userAgentProvider: () => string) {
+function configureMcpAppsTools(server: McpServer, connectionProvider: () => Promise<WebApi>) {
   server.tool(MCP_APPS_TOOLS.ping, "A simple ping tool to verify that the mcp-apps domain is enabled.", {}, async () => {
     try {
       return {
@@ -27,7 +27,7 @@ function configureMcpAppsTools(server: McpServer, tokenProvider: () => Promise<s
   });
 
   // ADO Planning Workspace — interactive backlog planning UI and tools.
-  configurePlanningTools(server, tokenProvider, connectionProvider, userAgentProvider);
+  configurePlanningTools(server, connectionProvider);
 }
 
 export { configureMcpAppsTools, MCP_APPS_TOOLS };

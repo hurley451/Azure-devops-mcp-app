@@ -4,7 +4,7 @@
 import {
   ALLOWED_CHILDREN,
   DraftWorkItem,
-  DraftWorkItemType,
+  isSupportedType,
   MAX_TITLE_LENGTH,
   MODE_ROOT_TYPES,
   PlanningDraft,
@@ -12,13 +12,10 @@ import {
   PlanningValidationError,
   PlanningWarning,
   SUPPORTED_TYPES,
+  TYPES_WITH_ACCEPTANCE_CRITERIA,
   ValidationResult,
 } from "./types.js";
 import { normalizeDraft } from "./normalize.js";
-
-function isSupportedType(type: unknown): type is DraftWorkItemType {
-  return typeof type === "string" && (SUPPORTED_TYPES as readonly string[]).includes(type);
-}
 
 /**
  * Detects content that is unsafe to write to an Azure DevOps field: NUL bytes
@@ -39,7 +36,11 @@ function hasUnsafeContent(value: string | undefined): boolean {
   return false;
 }
 
-/** Find every localId that participates in a parent cycle. */
+/**
+ * Find every localId that is actually ON a parent cycle. A node is on a cycle
+ * iff walking its parent chain returns to itself. Nodes that merely feed into a
+ * cycle (legal tails) are not flagged.
+ */
 function findCycleMembers(items: DraftWorkItem[]): Set<string> {
   const parentOf = new Map<string, string | undefined>();
   for (const item of items) {
@@ -48,17 +49,17 @@ function findCycleMembers(items: DraftWorkItem[]): Set<string> {
 
   const cyclic = new Set<string>();
   for (const item of items) {
-    const seen = new Set<string>();
-    let cursor: string | undefined = item.localId;
-    while (cursor !== undefined) {
-      if (seen.has(cursor)) {
-        // Everything we walked through is part of (or feeds) a cycle.
-        seen.forEach((id) => cyclic.add(id));
+    const start = item.localId;
+    const walked = new Set<string>([start]);
+    let cursor = parentOf.get(start);
+    while (cursor !== undefined && parentOf.has(cursor)) {
+      if (cursor === start) {
+        cyclic.add(start); // walking parents returned to start => start is on a cycle
         break;
       }
-      seen.add(cursor);
+      if (walked.has(cursor)) break; // hit a different cycle that does not contain start
+      walked.add(cursor);
       cursor = parentOf.get(cursor);
-      if (cursor !== undefined && !parentOf.has(cursor)) break; // orphan ref, handled elsewhere
     }
   }
   return cyclic;
@@ -121,7 +122,9 @@ export function validateDraft(draft: PlanningDraft, mode?: PlanningMode): Valida
       });
     }
 
-    if (hasUnsafeContent(item.title) || hasUnsafeContent(item.description) || (item.acceptanceCriteria ?? []).some(hasUnsafeContent)) {
+    // Every free-text field written to Azure DevOps is checked for control bytes.
+    const unsafe = [item.title, item.description, item.areaPath, item.iterationPath, item.assignedTo, ...(item.acceptanceCriteria ?? []), ...(item.tags ?? [])].some(hasUnsafeContent);
+    if (unsafe) {
       errors.push({ code: "UNSAFE_CONTENT", message: `Item '${id}' contains control characters that are unsafe to write to Azure DevOps.`, localId: id, severity: "error" });
     }
 
@@ -167,7 +170,7 @@ export function validateDraft(draft: PlanningDraft, mode?: PlanningMode): Valida
     }
 
     // Acceptance criteria on a type that does not carry them in ADO.
-    if (item.acceptanceCriteria && item.acceptanceCriteria.length > 0 && (item.type === "Epic" || item.type === "Feature" || item.type === "Task")) {
+    if (item.acceptanceCriteria && item.acceptanceCriteria.length > 0 && isSupportedType(item.type) && !TYPES_WITH_ACCEPTANCE_CRITERIA.includes(item.type)) {
       warnings.push({
         code: "ACCEPTANCE_CRITERIA_IGNORED",
         message: `Acceptance criteria on '${id}' ('${item.type}') will be appended to the description; '${item.type}' has no Acceptance Criteria field.`,

@@ -157,6 +157,18 @@ export interface ExportResult {
 /** Every work item type the planner understands. */
 export const SUPPORTED_TYPES: readonly DraftWorkItemType[] = ["Epic", "Feature", "Product Backlog Item", "User Story", "Task", "Bug"];
 
+/** Type guard for a supported work item type. */
+export function isSupportedType(type: unknown): type is DraftWorkItemType {
+  return typeof type === "string" && (SUPPORTED_TYPES as readonly string[]).includes(type);
+}
+
+/**
+ * Work item types that have a native Azure DevOps "Acceptance Criteria" field.
+ * Single source of truth: creation writes AC to this field for these types, and
+ * appends it to the description for the others. Keep both code paths reading this.
+ */
+export const TYPES_WITH_ACCEPTANCE_CRITERIA: readonly DraftWorkItemType[] = ["Product Backlog Item", "User Story", "Bug"];
+
 /** Legal child types for each parent type. An empty array means the type is a leaf. */
 export const ALLOWED_CHILDREN: Record<DraftWorkItemType, DraftWorkItemType[]> = {
   "Epic": ["Feature"],

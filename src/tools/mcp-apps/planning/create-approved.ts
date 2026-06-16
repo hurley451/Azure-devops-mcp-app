@@ -3,7 +3,18 @@
 
 import { WebApi } from "azure-devops-node-api";
 import { encodeFormattedValue } from "../../../utils.js";
-import { CreateApprovedOptions, CreateApprovedResult, CreatedWorkItem, DraftWorkItem, FailedDraftItem, PlanningDraft, PlanningWarning, SkippedDraftItem, TYPE_ORDER } from "./types.js";
+import {
+  CreateApprovedOptions,
+  CreateApprovedResult,
+  CreatedWorkItem,
+  DraftWorkItem,
+  FailedDraftItem,
+  PlanningDraft,
+  PlanningWarning,
+  SkippedDraftItem,
+  TYPE_ORDER,
+  TYPES_WITH_ACCEPTANCE_CRITERIA,
+} from "./types.js";
 import { validateDraft } from "./validation.js";
 
 interface PatchOp {
@@ -70,7 +81,7 @@ function buildPatchDocument(item: DraftWorkItem, options: CreateApprovedOptions,
   const ops: PatchOp[] = [{ op: "add", path: "/fields/System.Title", value: item.title }];
 
   // Description (+ acceptance criteria for types without an AC field).
-  const acHasField = item.type === "Product Backlog Item" || item.type === "User Story" || item.type === "Bug";
+  const acHasField = TYPES_WITH_ACCEPTANCE_CRITERIA.includes(item.type);
   let description = item.description ?? "";
   if (!acHasField && item.acceptanceCriteria && item.acceptanceCriteria.length > 0) {
     const acText = joinAcceptanceCriteria(item.acceptanceCriteria);
@@ -153,7 +164,7 @@ export async function createApprovedItems(connection: WebApi, project: string, d
   const warnings: PlanningWarning[] = [...validation.warnings];
 
   if (!validation.valid) {
-    return { dryRun, created: [], skipped: [], failed: [], summary: { epics: 0, features: 0, pbis: 0, tasks: 0 }, warnings, errors: validation.errors };
+    return { dryRun, created: [], skipped: [], failed: [], summary: summarize([]), warnings, errors: validation.errors };
   }
 
   const items = validation.normalizedDraft.items;
@@ -227,5 +238,3 @@ export async function createApprovedItems(connection: WebApi, project: string, d
 
   return { dryRun, created, skipped, failed, summary: summarize(created), warnings };
 }
-
-export { orderForCreation, buildPatchDocument };

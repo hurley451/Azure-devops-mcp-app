@@ -154,4 +154,35 @@ describe("validateDraft", () => {
     const result = validateDraft(draft([{ localId: "pbi-001", type: "Product Backlog Item", title: "P", status: "draft" }]));
     expect(result.warnings.some((w) => w.code === "MISSING_ACCEPTANCE_CRITERIA")).toBe(true);
   });
+
+  it("fails when a title exceeds the ADO length limit", () => {
+    const result = validateDraft(draft([{ localId: "epic-001", type: "Epic", title: "x".repeat(256), status: "draft" }]));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.code === "TITLE_TOO_LONG" && e.localId === "epic-001")).toBe(true);
+  });
+
+  it("fails on duplicate localIds", () => {
+    const result = validateDraft(
+      draft([
+        { localId: "dup", type: "Epic", title: "A", status: "draft" },
+        { localId: "dup", type: "Epic", title: "B", status: "draft" },
+      ])
+    );
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.code === "DUPLICATE_LOCAL_ID" && e.localId === "dup")).toBe(true);
+  });
+
+  it("flags only the nodes on a cycle, not legal tails feeding into it", () => {
+    // a <-> b is a real cycle; c -> b is a legal tail and must NOT be flagged.
+    const result = validateDraft(
+      draft([
+        { localId: "a", type: "Feature", title: "A", parentLocalId: "b", status: "draft" },
+        { localId: "b", type: "Feature", title: "B", parentLocalId: "a", status: "draft" },
+        { localId: "c", type: "Feature", title: "C", parentLocalId: "b", status: "draft" },
+      ])
+    );
+    const cycleIds = result.errors.filter((e) => e.code === "CYCLE").map((e) => e.localId);
+    expect(cycleIds).toEqual(expect.arrayContaining(["a", "b"]));
+    expect(cycleIds).not.toContain("c");
+  });
 });

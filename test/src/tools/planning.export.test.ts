@@ -57,6 +57,13 @@ describe("exportDraft", () => {
     expect(out.content).toContain("localId: epic-001");
   });
 
+  it("renders empty arrays inline, not as an invalid block (regression)", () => {
+    const out = exportDraft(sample, "yaml");
+    // The leaf PBI has no children; it must render as "children: []", never "children:\n[]".
+    expect(out.content).toContain("children: []");
+    expect(out.content).not.toMatch(/:\n\s*\[\]/);
+  });
+
   it("throws on an unknown format", () => {
     expect(() => exportDraft(sample, "xml" as "json")).toThrow();
   });

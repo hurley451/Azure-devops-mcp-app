@@ -46,16 +46,15 @@ const externalJsonResult = (value: unknown, source: string) => {
   };
 };
 
-function configurePlanningTools(server: McpServer, tokenProvider: () => Promise<string>, connectionProvider: () => Promise<WebApi>, userAgentProvider: () => string) {
-  void tokenProvider;
-  void userAgentProvider;
-
+function configurePlanningTools(server: McpServer, connectionProvider: () => Promise<WebApi>) {
   const ui = getPlanningUiResource();
 
   // Register the UI as a readable resource so hosts that preload MCP App
-  // resources by URI can fetch it independently of the tool result.
+  // resources by URI can fetch it independently of the tool result. The read
+  // callback resolves the HTML fresh so an ADO_PLANNING_UI_PATH override (or a
+  // rebuild) is reflected without re-registering.
   server.registerResource("ado-planning-workspace", ui.uri, { mimeType: ui.mimeType, description: "ADO Planning Workspace interactive UI." }, async (uri) => ({
-    contents: [{ uri: uri.toString(), mimeType: ui.mimeType, text: ui.html }],
+    contents: [{ uri: uri.toString(), mimeType: ui.mimeType, text: getPlanningUiResource().html }],
   }));
 
   // -------------------------------------------------------------------------

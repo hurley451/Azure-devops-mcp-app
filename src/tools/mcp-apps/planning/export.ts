@@ -32,12 +32,15 @@ function toYaml(value: unknown, indent = 0): string {
     .map((key, idx) => {
       const v = obj[key];
       const prefix = idx === 0 ? "" : pad;
+      // Empty collections must stay inline ("key: []" / "key: {}"); a block form
+      // ("key:\n[]") is invalid YAML.
+      if (Array.isArray(v)) {
+        return v.length === 0 ? `${prefix}${key}: []` : `${prefix}${key}:\n${toYaml(v, indent + 1)}`;
+      }
       if (v !== null && typeof v === "object") {
-        const nested = toYaml(v, indent + 1);
-        if (Array.isArray(v)) {
-          return `${prefix}${key}:\n${nested}`;
-        }
-        return `${prefix}${key}:\n${nested}`;
+        return Object.keys(v as Record<string, unknown>).filter((k) => (v as Record<string, unknown>)[k] !== undefined).length === 0
+          ? `${prefix}${key}: {}`
+          : `${prefix}${key}:\n${toYaml(v, indent + 1)}`;
       }
       return `${prefix}${key}: ${toYaml(v, 0)}`;
     })

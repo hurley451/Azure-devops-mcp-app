@@ -23,9 +23,7 @@ function validDraft(): PlanningDraft {
 
 describe("configureMcpAppsTools", () => {
   let server: McpServer & { tool: jest.Mock; registerTool: jest.Mock; registerResource: jest.Mock };
-  let tokenProvider: () => Promise<string>;
   let connectionProvider: () => Promise<WebApi>;
-  let userAgentProvider: () => string;
   let createWorkItem: jest.Mock;
 
   const toolHandler = (name: string): Handler => {
@@ -46,12 +44,10 @@ describe("configureMcpAppsTools", () => {
       registerTool: jest.Mock;
       registerResource: jest.Mock;
     };
-    tokenProvider = jest.fn() as unknown as () => Promise<string>;
-    userAgentProvider = () => "Jest";
     createWorkItem = jest.fn(async () => ({ id: 1 })) as unknown as jest.Mock;
     const connection = { serverUrl: "https://dev.azure.com/org", getWorkItemTrackingApi: jest.fn().mockResolvedValue({ createWorkItem }) } as unknown as WebApi;
     connectionProvider = jest.fn().mockResolvedValue(connection) as unknown as () => Promise<WebApi>;
-    configureMcpAppsTools(server, tokenProvider, connectionProvider, userAgentProvider);
+    configureMcpAppsTools(server, connectionProvider);
   });
 
   it("keeps the mcp_apps_ping smoke-test tool", async () => {
