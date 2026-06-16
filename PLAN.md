@@ -132,6 +132,39 @@ real PBI create to fail.
   `review_diff` approved (plan `a7451445`); `scan_drift` (7 files) = 0 drift. **Code:** independent
   reviewer = clean (its one test-hardening note applied).
 
+## R7 — Backlog round-trip + UI redesign [priority: high] — IN PROGRESS
+
+User-directed v2 (see [SPEC.md](SPEC.md) "v2 scope"): turn the create-only planning surface into a
+create → **view → modify** loop with a workspace that looks good and can expand. Ordered steps; each
+runs the dual gates (arch-guardrail `plan_change`/`review_diff` + super-review) and is committed when
+both axes + the standing gates are green. No new runtime deps (vanilla UI).
+
+- [ ] **R7.1 Sizing + maximize** (P1). Bump `_meta.ui.preferred-frame-size` in `index.ts`; add an
+      in-app maximize/expand toggle in `workspace.html` (collapse to a single pane / use full frame
+      height). **Check:** `build:ui` + `build` + `test` + `eslint` + `format-check` green; toggle
+      present in generated `ui.ts`.
+- [ ] **R7.2 `load_backlog` tool** (P1). New tool: query a project's existing ADO work items
+      (project/team/area/WIQL/top-N) and map them into a `PlanningDraft` (localId from `adoId`, parent
+      from `System.Parent`, `status:"created"`, `adoId`+`url`); spotlight via `externalJsonResult`;
+      reuse the typed `WebApi` client (no REST dup); zod schema; register in `index.ts`. **Check:** unit
+      tests for the mapping (parent linkage, area/tags) + registration; all gates green.
+- [ ] **R7.3 `update_items` tool** (P1). New write path: given items with `adoId` + changed fields,
+      build a JSON-patch and `updateWorkItem` (title, description, AC, state, parent, area/iteration,
+      assignee, tags); `dryRun`; per-item isolation; only explicit/changed fields. Likely an
+      arch-guardrail **evolution** (extends the create-only write contract to updates) — log it.
+      **Check:** unit tests (patch correctness, dryRun, isolation) + registration; gates green.
+- [ ] **R7.4 Backlog manager redesign** (P2). Redesign `workspace.html` map: columns (type icon,
+      title, state, assignee, area, #id), type/state grouping, filter/search/sort, real styling/density;
+      wire "Load Backlog" → `load_backlog`. **Check:** `build:ui` + gates; manager renders loaded items.
+- [ ] **R7.5 Detail editor redesign + Save to ADO** (P2). Real inspector form: state-aware dropdowns,
+      markdown description + AC editor, area/iteration/assignee pickers, tags, inline validation;
+      "Save to ADO" → `update_items` (dry-run aware). **Check:** `build:ui` + gates; editor wired.
+- [ ] **R7.6 Persistence** (P2). localStorage save/restore of the working draft + a reload-from-ADO
+      action so the view/modify loop survives reopen. **Check:** `build:ui` + gates.
+- **Docs:** update `docs/MCP_APPS_PLANNING.md` + README as tools/UI land. **Acceptance:** open for
+  `mungepoint`, Load Backlog shows 250/251/252, edit one and Save writes back, add a child User Story
+  under 250 and create it; workspace can be maximized.
+
 ## Working agreements (from this project's history — honor them)
 
 - Commit each verified step locally; **do not push** (repo-autopilot doctrine; this is a fork, no remote push intended).

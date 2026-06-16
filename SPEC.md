@@ -56,8 +56,30 @@ Modes: `epic-feature-pbi-task` | `feature-pbi-task` | `pbi-task`. Title ≤ 255 
 | 15  | Validation errors prevent unsafe writes                  | ✅ (unit)                              |
 | 16  | Documentation explains setup + limitations               | ✅ docs + README                       |
 
-## Non-goals (v1)
+## v2 scope — backlog round-trip + UI redesign (added 2026-06-16, user-directed)
 
-Full Boards clone, drag-drop sprint planning, bidirectional live sync, native ADO iframe embed,
-PR/pipeline execution, multi-user, custom process designer, persistent backend. Drafts live in
-memory / exportable JSON.
+v1 shipped a create-only planning surface; the user needs the full **create → view → modify** loop on
+real items, plus a workspace that doesn't "look like shit" and can expand. Moved **in-scope** for v2
+(tracked as PLAN R7):
+
+- **Load existing backlog** — pull a project's live ADO work items into the workspace (read into the
+  draft as `status:"created"` with `adoId`/`url`), so users see what already exists, not just new drafts.
+- **Write-back / update** — edit existing or created items (title, description, acceptance criteria,
+  state, parent, area/iteration, assignee, tags) and **save back to ADO** (new update path; dry-run first,
+  per-item isolation). v1 `create_approved` only _created_.
+- **Backlog manager view** — redesigned: columns, type/state grouping, filters, search, sort, proper
+  styling and density (replaces the thin indented-card list).
+- **Detail editor view** — real form: process/state-aware dropdowns, markdown description + AC, pickers,
+  inline validation, "Save to ADO" (replaces the bare stack of `<input>`s).
+- **Sizing / maximize** — larger `preferred-frame-size` + an in-app maximize/expand toggle; evaluate the
+  `@mcp-ui/server` / ext-apps fullscreen capability (the inline raw-html app cannot expand today).
+- **Light persistence** — survive workspace reopen (localStorage for the working draft + reload-from-ADO),
+  so the view/modify loop isn't lost on close.
+
+Still **bidirectional _live_ sync** (push notifications / continuous reconciliation) and a multi-user
+backend remain out — v2 round-trips on explicit user action (load / save), not continuously.
+
+## Non-goals (still out, even in v2)
+
+Full Boards clone, drag-drop sprint planning, **continuous** bidirectional live sync, native ADO iframe
+embed, PR/pipeline execution, multi-user, custom process designer, server-side persistent backend.
