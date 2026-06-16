@@ -97,9 +97,11 @@ describe("configureMcpAppsTools", () => {
   it("create_approved handler honours dryRun (no ADO writes)", async () => {
     const handler = toolHandler(PLANNING_TOOLS.create_approved);
     const result = await handler({ project: "Proj", draft: validDraft(), options: { dryRun: true } });
-    const json = result.content.map((c) => c.text).find((t) => t && t.indexOf("dryRun") >= 0);
-    expect(json).toBeDefined();
-    const parsed = JSON.parse(json as string);
+    // The ADO-sourced result is spotlighted as untrusted external content...
+    expect(result.content[0].text).toContain("UNTRUSTED");
+    // ...with a raw JSON copy (last content item) the UI can parse.
+    const raw = result.content[result.content.length - 1].text as string;
+    const parsed = JSON.parse(raw);
     expect(parsed.dryRun).toBe(true);
     expect(createWorkItem).not.toHaveBeenCalled();
   });

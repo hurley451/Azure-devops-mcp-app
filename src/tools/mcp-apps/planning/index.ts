@@ -53,6 +53,13 @@ function configurePlanningTools(server: McpServer, connectionProvider: () => Pro
   // resources by URI can fetch it independently of the tool result. The read
   // callback resolves the HTML fresh so an ADO_PLANNING_UI_PATH override (or a
   // rebuild) is reflected without re-registering.
+  //
+  // The registered URI embeds the *build-time* content hash (`ui.uri`), while the
+  // `open` tool returns the *per-call* hash from a fresh getPlanningUiResource().
+  // In production these are identical (the HTML is the compiled-in copy, so the
+  // hash is stable). They diverge only under the dev-only ADO_PLANNING_UI_PATH
+  // override, where editing the HTML between registration and a tool call changes
+  // the live hash; that override is for local UI iteration, not production.
   server.registerResource("ado-planning-workspace", ui.uri, { mimeType: ui.mimeType, description: "ADO Planning Workspace interactive UI." }, async (uri) => ({
     contents: [{ uri: uri.toString(), mimeType: ui.mimeType, text: getPlanningUiResource().html }],
   }));
@@ -203,7 +210,10 @@ function configurePlanningTools(server: McpServer, connectionProvider: () => Pro
         if (project && !parsed.project) parsed.project = project;
         const connection = await connectionProvider();
         const result = await createApprovedItems(connection, project, parsed, (options as CreateApprovedOptions) ?? {});
-        return jsonResult(result);
+        // The result embeds Azure DevOps-sourced strings (per-item error messages,
+        // created titles), so spotlight it as untrusted external content for the
+        // model while still returning a raw copy the UI can parse.
+        return externalJsonResult(result, "azure devops work item creation results");
       } catch (error) {
         return errorResult("Error creating approved items", error);
       }

@@ -63,8 +63,11 @@ export interface PlanningDraft {
   team?: string;
   sourceNarrative?: string;
   mode?: PlanningMode;
-  createdAt: string;
-  updatedAt: string;
+  // Optional: the pure normalization layer is intentionally timestamp-free and never
+  // populates these, and the zod schema (schema.ts) accepts them as optional. Kept here
+  // only for callers that choose to stamp drafts themselves.
+  createdAt?: string;
+  updatedAt?: string;
   items: DraftWorkItem[];
 }
 

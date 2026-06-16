@@ -197,11 +197,18 @@
   function log(line){ var el = byId("log"); el.textContent = "[" + new Date().toLocaleTimeString() + "] " + line + "\n" + el.textContent; }
   function setStatus(node){ var s = byId("status"); s.innerHTML = ""; s.appendChild(node); }
 
-  function typeClass(t){
-    if (t === "Product Backlog Item") return "type-PBI";
-    if (t === "User Story") return "type-Story";
-    return "type-" + t;
-  }
+  // Single source of truth for work-item-type styling: maps each type to its CSS
+  // class suffix (badge color rule) and its color CSS variable (card left border).
+  var TYPE_STYLE = {
+    "Epic":                 { cls: "type-Epic",    color: "epic" },
+    "Feature":              { cls: "type-Feature", color: "feature" },
+    "Product Backlog Item": { cls: "type-PBI",     color: "pbi" },
+    "User Story":           { cls: "type-Story",   color: "story" },
+    "Task":                 { cls: "type-Task",    color: "task" },
+    "Bug":                  { cls: "type-Bug",     color: "bug" }
+  };
+  function typeStyle(t){ return TYPE_STYLE[t] || { cls: "type-" + String(t).replace(/\s+/g, ""), color: "pbi" }; }
+  function typeClass(t){ return typeStyle(t).cls; }
 
   // ---- draft model helpers ----------------------------------------------
   function flat(){ return (state.draft && state.draft.items) ? state.draft.items : []; }
@@ -246,7 +253,7 @@
 
   function card(item, depth){
     var box = h("div", { class: "card" + (item.localId === state.selectedId ? " sel" : ""), style: "margin-left:" + (depth * 18) + "px", "data-id": item.localId });
-    box.style.borderLeftColor = "var(--" + (item.type === "Epic" ? "epic" : item.type === "Feature" ? "feature" : item.type === "Task" ? "task" : item.type === "Bug" ? "bug" : "pbi") + ")";
+    box.style.borderLeftColor = "var(--" + typeStyle(item.type).color + ")";
     var kidCount = item.__kids ? item.__kids.length : 0;
     var top = h("div", { class: "top" }, [
       h("span", { class: "badge " + typeClass(item.type), text: item.type }),
