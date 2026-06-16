@@ -1,0 +1,8 @@
+# Architectural Change Log
+
+### 2026-06-16T03:18:30.148Z
+**Plan:** `cf48c3d4-ffa2-4c1a-8696-4815b967951d`
+**Intent:** Close four accepted super-review / arch-baseline notes (PLAN R3) in the planning MCP App, all small and behavior-preserving: (1) spotlight Azure-DevOps-sourced content in the create_approved tool result by switching its return from jsonResult to the existing externalJsonResult helper (consistent with get_context and sync); (2) unify the two duplicated work-item-type->CSS mappings in workspace.html (typeClass() class-suffix mapping and card()'s inline borderLeftColor color-var ternary) into a single TYPE_STYLE lookup table read by a small typeStyle() projection; (3) document, in index.ts, the static-registered ui:// resource URI vs the per-call live content hash — match in production, diverge only under the dev-only ADO_PLANNING_UI_PATH override; (4) make PlanningDraft.createdAt/updatedAt optional in types.ts to match schema.ts and the timestamp-free normalization. Update the registration test to assert create_approved external content is spotlighted and to parse the raw copy.
+**Summary:** R3: spotlight create_approved result via externalJsonResult; unify work-item-type styling into a single TYPE_STYLE table + typeStyle(); document static ui:// URI vs per-call hash; make PlanningDraft.createdAt/updatedAt optional. Behavior-preserving; all gates green; committed 003242c.
+**Files:** `src/tools/mcp-apps/planning/index.ts`, `src/tools/mcp-apps/planning/types.ts`, `src/tools/mcp-apps/planning/ui/workspace.html`, `src/tools/mcp-apps/planning/ui.ts`, `test/src/tools/mcp-apps.test.ts`
+---

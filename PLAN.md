@@ -63,20 +63,22 @@ repo-autopilot's second axis is now established; baseline committed.
   — code conforms. Risk dispositions tabled in [ARCHITECTURE.md](ARCHITECTURE.md); one (`createdAt`/
   `updatedAt` model/contract mismatch) folded into R3 below.
 
-### R3 — Close accepted super-review notes [priority: medium]
+### R3 — Close accepted super-review notes [priority: medium] — DONE ✅ (commit 003242c)
 
-- [ ] Spotlight ADO error strings in `create_approved` results (currently `jsonResult`, not
-      `externalJsonResult`) — `src/tools/mcp-apps/planning/index.ts`.
-- [ ] Unify the work-item-type→CSS mapping in `workspace.html` (`typeClass()` vs the inline ternary
-      in `card()`) into one lookup table. (Edit workspace.html → `npm run build:ui`.)
-- [ ] Decide on the static-registered `ui://` URI vs per-call live hash: either register dynamically
-      or document the dev-override-only mismatch in `index.ts`.
-- [ ] (from R2 arch baseline) Resolve the `createdAt`/`updatedAt` model/contract mismatch:
-      required in `types.ts` (`PlanningDraft`) but optional in `schema.ts` and never populated by the
-      pure layer. Either make them optional in `types.ts` (match reality) or populate them — prefer
-      making the type optional, since normalization is intentionally timestamp-free.
-- **Check:** `npm run build && npm test && npm run eslint` green; for the spotlight change, a unit
-  test asserting create-approved external content is wrapped.
+- [x] Spotlight ADO content in `create_approved` results: `index.ts` now returns
+      `externalJsonResult(result, "azure devops work item creation results")` (untrusted-delimited
+      for the model + raw copy for the UI), consistent with `get_context`/`sync`.
+- [x] Unify the work-item-type→CSS mapping in `workspace.html` into one `TYPE_STYLE` table read by
+      `typeStyle()`; `typeClass()` and `card()`'s borderLeftColor both use it. Behavior-preserving
+      (`--story` and `--pbi` are both `#137333`). `ui.ts` regenerated via `build:ui`.
+- [x] Documented the static-registered `ui://` URI vs per-call live hash in `index.ts` (identical in
+      prod; diverge only under the dev-only `ADO_PLANNING_UI_PATH` override).
+- [x] (from R2 arch baseline) Made `PlanningDraft.createdAt`/`updatedAt` optional in `types.ts` to
+      match `schema.ts` and the timestamp-free normalization.
+- **Check (passed):** `build` + `test` (1010/25) + `eslint` + `format-check` + `validate-tools` green;
+  the `create_approved` dryRun test now asserts the result is spotlighted (`UNTRUSTED`) and parses the
+  raw copy. **Arch axis:** `plan_change` + `review_diff` approved (plan `cf48c3d4`); `scan_drift`
+  (5 changed files) = 0 drift. **Code axis:** independent code-reviewer verdict = clean.
 
 ### R4 — Durability of the Desktop deployment [priority: medium]
 

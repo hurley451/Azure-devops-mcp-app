@@ -140,5 +140,7 @@ dist
 # Sandbox npm cache workaround (see CONTEXT.md "Divergences" #7) — never commit
 .npm-cache/
 
-# arch-guardrail-mcp runtime telemetry (churns every tool call; baseline itself is committed)
+# arch-guardrail-mcp runtime bookkeeping (churns every tool call; baseline +
+# CHANGELOG are committed, but telemetry and plan/chain state are per-run mutable)
 .architectural-review/telemetry.jsonl
+.architectural-review/state/
