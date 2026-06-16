@@ -1,0 +1,50 @@
+taxonomyVersion: 1
+concernClasses:
+  - id: planning-pure-core
+    kind: substrate
+    members:
+      - "src/tools/mcp-apps/planning/types.ts"
+      - "src/tools/mcp-apps/planning/normalize.ts"
+      - "src/tools/mcp-apps/planning/validation.ts"
+      - "src/tools/mcp-apps/planning/export.ts"
+      - "src/tools/mcp-apps/planning/generate.ts"
+    description: Pure, I/O-free draft data model, normalization, validation, export, and the no-LLM generation contract. Deterministic; safe to unit test.
+    source: inferred
+    confirmed: false
+  - id: planning-ado-io
+    kind: substrate
+    members:
+      - "src/tools/mcp-apps/planning/context.ts"
+      - "src/tools/mcp-apps/planning/create-approved.ts"
+      - "src/tools/mcp-apps/planning/sync.ts"
+    description: Azure DevOps-touching tier (read context/sync, write approved items) via azure-devops-node-api. Only create-approved performs writes.
+    source: inferred
+    confirmed: false
+  - id: planning-ui-bridge
+    kind: projection
+    members:
+      - "src/tools/mcp-apps/planning/index.ts"
+      - "src/tools/mcp-apps/planning/ui-resource.ts"
+      - "src/tools/mcp-apps/planning/ui.ts"
+      - "src/tools/mcp-apps/planning/ui/workspace.html"
+    description: Tool/resource registration and the inline MCP App UI projection of the draft model; postMessage bridge and generated-HTML pipeline.
+    source: inferred
+    confirmed: false
+  - id: server-shared-substrate
+    kind: substrate
+    members:
+      - "src/shared/*.ts"
+      - "src/auth.ts"
+      - "src/utils.ts"
+      - "src/logger.ts"
+    description: Cross-cutting host substrate (domain gating, elicitation, content-safety, name validation, auth, utilities) reused across all tool domains.
+    source: inferred
+    confirmed: false
+  - id: tool-registration-vocabulary
+    kind: vocabulary
+    members:
+      - "src/tools/*.ts"
+      - "src/tools.ts"
+    description: Perspective-independent per-domain tool-registration vocabulary (*_TOOLS maps + configure*Tools functions + zod schemas).
+    source: inferred
+    confirmed: false

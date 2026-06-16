@@ -9,3 +9,7 @@ coverage/
 # Prettier would reformat the embedded JS/CSS and churn the content hash.
 src/tools/mcp-apps/planning/ui/workspace.html
 src/tools/mcp-apps/planning/ui.ts
+
+# arch-guardrail-mcp baseline: tool-generated, machine-parsed report/scorecard/persona files.
+# Prettier reformatting would corrupt the keyed parser and churn on every regeneration.
+.architectural-review/

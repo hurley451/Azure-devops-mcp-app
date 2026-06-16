@@ -16,7 +16,14 @@ npm run validate-tools # expect: All tool names and parameter names are valid
 ```
 
 Two independent axes (repo-autopilot doctrine): **code quality** via `super-review`, **architectural
-conformance** via `arch-guardrail-mcp`. The first was run once; the second has **never** been run.
+conformance** via `arch-guardrail-mcp`. Both now established: super-review run at P4; arch-guardrail
+baseline generated at R2 (`.architectural-review/`, mirrored in [ARCHITECTURE.md](ARCHITECTURE.md)),
+full `scan_drift` = **0 drift**.
+
+> **Worktree foot-gun (seen this run):** Bash (git/npm) runs in the worktree
+> `.claude/worktrees/mystifying-jemison-693770`; the **main checkout** at the repo root is a
+> _separate_ tree on branch `main`. Always edit/commit via the **worktree** absolute path, not the
+> bare repo root — they are not the same files (different inodes).
 
 ## Completed phases (DONE — verified at commit 200ebc9)
 
@@ -41,12 +48,20 @@ Acceptance #12/#13/#14 are unit-tested only; never executed against ADO.
 - **Check (executable):** created items return numeric `adoId` + `_workitems/edit/{id}` URL; in ADO the children carry a `System.LinkTypes.Hierarchy-Reverse` link to their parent; `sync` on those ids returns current state. Then **delete the test items** (or use a disposable project).
 - Out-of-band manual step; record the result back here.
 
-### R2 — Architectural conformance baseline (arch-guardrail-mcp) [priority: high]
+### R2 — Architectural conformance baseline (arch-guardrail-mcp) [priority: high] — DONE ✅
 
-repo-autopilot's second axis was never run; no baseline exists.
+repo-autopilot's second axis is now established; baseline committed.
 
-- **Check:** run `arch-guardrail-mcp` bootstrap/generate-baseline over `src/tools/mcp-apps/planning/`,
-  then `review_diff`/`scan_drift`. Resolve or record any conformance findings. Commit the baseline.
+- **Done:** `bootstrap_review` (no baseline) → `generate_baseline` (mode `bootstrap`, focus on the
+  planning module) → `get_architecture` → `scan_drift` (full). Baseline lives in
+  `.architectural-review/` (report + scorecard + personas scaffold), mirrored human-readably in
+  [ARCHITECTURE.md](ARCHITECTURE.md). Telemetry log gitignored; baseline excluded from prettier.
+- **Evidence:** baseline = 2 components / 5 layers (`ui→api→application→domain→infrastructure`) /
+  6 interface contracts (incl. Option-A no-LLM, dry-run-before-write, UI hash) / 8 unique risk
+  patterns (all `warning`); scorecard Security **Strong**, Scalability/Maintainability/Testability
+  **Good**, Operability **Fair**. `scan_drift` full = **126 files, 0 drift / 0 blockers / 0 warnings**
+  — code conforms. Risk dispositions tabled in [ARCHITECTURE.md](ARCHITECTURE.md); one (`createdAt`/
+  `updatedAt` model/contract mismatch) folded into R3 below.
 
 ### R3 — Close accepted super-review notes [priority: medium]
 
@@ -56,6 +71,10 @@ repo-autopilot's second axis was never run; no baseline exists.
       in `card()`) into one lookup table. (Edit workspace.html → `npm run build:ui`.)
 - [ ] Decide on the static-registered `ui://` URI vs per-call live hash: either register dynamically
       or document the dev-override-only mismatch in `index.ts`.
+- [ ] (from R2 arch baseline) Resolve the `createdAt`/`updatedAt` model/contract mismatch:
+      required in `types.ts` (`PlanningDraft`) but optional in `schema.ts` and never populated by the
+      pure layer. Either make them optional in `types.ts` (match reality) or populate them — prefer
+      making the type optional, since normalization is intentionally timestamp-free.
 - **Check:** `npm run build && npm test && npm run eslint` green; for the spotlight change, a unit
   test asserting create-approved external content is wrapped.
 

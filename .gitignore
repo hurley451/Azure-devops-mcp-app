@@ -136,3 +136,9 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Sandbox npm cache workaround (see CONTEXT.md "Divergences" #7) — never commit
+.npm-cache/
+
+# arch-guardrail-mcp runtime telemetry (churns every tool call; baseline itself is committed)
+.architectural-review/telemetry.jsonl

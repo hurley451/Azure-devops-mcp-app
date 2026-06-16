@@ -1,0 +1,59 @@
+conceptsVersion: 1
+concepts:
+  - conceptId: planning-draft
+    kind: dataset
+    canonicalOwner: "src/tools/mcp-apps/planning/types.ts#PlanningDraft"
+    names: ["PlanningDraft", "draft", "backlog draft"]
+    aliases: ["DraftWorkItem hierarchy"]
+    description: Canonical in-memory/exportable representation of a proposed Epic→Feature→PBI/Story→Task hierarchy. Not persisted server-side.
+    source: inferred
+    confirmed: false
+  - conceptId: hierarchy-rules
+    kind: capability
+    canonicalOwner: "src/tools/mcp-apps/planning/types.ts#ALLOWED_CHILDREN"
+    names: ["ALLOWED_CHILDREN", "MODE_ROOT_TYPES", "TYPE_ORDER"]
+    description: Single source of truth for legal parent/child types, per-mode root types, and creation ordering; consumed by validation, create-approved, and generate.
+    source: inferred
+    confirmed: false
+  - conceptId: draft-validation
+    kind: capability
+    canonicalOwner: "src/tools/mcp-apps/planning/validation.ts#validateDraft"
+    names: ["validateDraft"]
+    description: Pure validation of types/hierarchy/cycles/orphans/titles/safety, returning a normalized draft plus errors and warnings. Gate before any creation.
+    source: inferred
+    confirmed: false
+  - conceptId: approved-creation
+    kind: capability
+    canonicalOwner: "src/tools/mcp-apps/planning/create-approved.ts#createApprovedItems"
+    names: ["createApprovedItems"]
+    description: The sole Azure DevOps write path for planning; parents-first, approval-gated, dryRun-capable, failure-isolating.
+    source: inferred
+    confirmed: false
+  - conceptId: generation-contract
+    kind: capability
+    canonicalOwner: "src/tools/mcp-apps/planning/generate.ts#buildGenerationContract"
+    names: ["buildGenerationContract", "Option A"]
+    description: Model-mediated draft generation. The server emits instructions+schema and never calls an LLM itself.
+    source: inferred
+    confirmed: false
+  - conceptId: content-spotlighting
+    kind: capability
+    canonicalOwner: "src/shared/content-safety.ts#spotlightContent"
+    names: ["spotlightContent", "createExternalContentResponse"]
+    description: Nonce-delimited spotlighting of untrusted external/narrative content so the model treats it as data.
+    source: inferred
+    confirmed: false
+  - conceptId: domain-gating
+    kind: capability
+    canonicalOwner: "src/shared/domains.ts#DomainsManager"
+    names: ["DomainsManager", "Domain"]
+    description: Decides which tool domains load; deliberately excludes mcp-apps from "all" so the planning app is opt-in.
+    source: inferred
+    confirmed: false
+  - conceptId: planning-ui-resource
+    kind: dataset
+    canonicalOwner: "src/tools/mcp-apps/planning/ui-resource.ts#getPlanningUiResource"
+    names: ["getPlanningUiResource", "PLANNING_UI_HTML"]
+    description: The inline MCP App UI resource (content-hash URI, mcp-app mime), generated from workspace.html with an ADO_PLANNING_UI_PATH live override.
+    source: inferred
+    confirmed: false
