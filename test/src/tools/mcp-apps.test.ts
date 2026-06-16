@@ -65,6 +65,7 @@ describe("configureMcpAppsTools", () => {
         PLANNING_TOOLS.validate_draft,
         PLANNING_TOOLS.create_approved,
         PLANNING_TOOLS.load_backlog,
+        PLANNING_TOOLS.update_items,
         PLANNING_TOOLS.sync,
         PLANNING_TOOLS.export,
       ])

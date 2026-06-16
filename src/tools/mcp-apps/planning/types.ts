@@ -129,6 +129,47 @@ export interface CreateApprovedOptions {
   tags?: string[];
 }
 
+/** An edit to an EXISTING Azure DevOps work item (by adoId). Only provided fields change. */
+export interface UpdateWorkItemInput {
+  adoId: number;
+  title?: string;
+  description?: string;
+  acceptanceCriteria?: string[];
+  state?: string;
+  areaPath?: string;
+  iterationPath?: string;
+  assignedTo?: string;
+  tags?: string[];
+}
+
+export interface UpdateItemsOptions {
+  dryRun?: boolean;
+}
+
+export interface UpdatedWorkItem {
+  adoId: number;
+  url?: string;
+  /** Which fields the patch changed (e.g. "Title", "State"). */
+  fields: string[];
+}
+
+export interface SkippedUpdateItem {
+  adoId?: number;
+  reason: string;
+}
+
+export interface FailedUpdateItem {
+  adoId: number;
+  error: string;
+}
+
+export interface UpdateItemsResult {
+  dryRun: boolean;
+  updated: UpdatedWorkItem[];
+  skipped: SkippedUpdateItem[];
+  failed: FailedUpdateItem[];
+}
+
 export interface SyncedWorkItem {
   adoId: number;
   type?: string;

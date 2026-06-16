@@ -72,3 +72,16 @@ export const loadBacklogOptionsSchema = z
     ids: z.array(z.coerce.number().int().positive()).max(1000).optional(),
   })
   .optional();
+
+/** One edit to an existing work item (by adoId). Only provided fields are changed. */
+export const updateItemsSchema = z.object({
+  adoId: z.coerce.number().int().positive(),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  acceptanceCriteria: z.array(z.string()).optional(),
+  state: z.string().optional(),
+  areaPath: z.string().optional(),
+  iterationPath: z.string().optional(),
+  assignedTo: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+});

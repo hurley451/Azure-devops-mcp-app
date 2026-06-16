@@ -8,16 +8,17 @@ import { z } from "zod";
 
 import { elicitProject } from "../../../shared/elicitations.js";
 import { spotlightContent } from "../../../shared/content-safety.js";
-import { createApprovedOptionsSchema, exportFormatSchema, loadBacklogOptionsSchema, planningDraftSchema, planningModeSchema } from "./schema.js";
+import { createApprovedOptionsSchema, exportFormatSchema, loadBacklogOptionsSchema, planningDraftSchema, planningModeSchema, updateItemsSchema } from "./schema.js";
 import { validateDraft } from "./validation.js";
 import { createApprovedItems } from "./create-approved.js";
 import { syncWorkItems } from "./sync.js";
 import { loadBacklog, LoadBacklogOptions } from "./backlog.js";
+import { updateWorkItems } from "./update.js";
 import { exportDraft } from "./export.js";
 import { getPlanningContext } from "./context.js";
 import { buildGenerationContract } from "./generate.js";
 import { getPlanningUiResource } from "./ui-resource.js";
-import { CreateApprovedOptions, ExportFormat, PlanningDraft, PlanningMode, ProcessTemplateHint } from "./types.js";
+import { CreateApprovedOptions, ExportFormat, PlanningDraft, PlanningMode, ProcessTemplateHint, UpdateItemsOptions, UpdateWorkItemInput } from "./types.js";
 
 const PLANNING_TOOLS = {
   open: "mcp_ado_app_planning_open",
@@ -26,6 +27,7 @@ const PLANNING_TOOLS = {
   validate_draft: "mcp_ado_app_planning_validate_draft",
   create_approved: "mcp_ado_app_planning_create_approved",
   load_backlog: "mcp_ado_app_planning_load_backlog",
+  update_items: "mcp_ado_app_planning_update_items",
   sync: "mcp_ado_app_planning_sync",
   export: "mcp_ado_app_planning_export",
 };
@@ -239,6 +241,28 @@ function configurePlanningTools(server: McpServer, connectionProvider: () => Pro
         return externalJsonResult(result, "azure devops backlog items");
       } catch (error) {
         return errorResult("Error loading backlog", error);
+      }
+    }
+  );
+
+  // -------------------------------------------------------------------------
+  // planning_update_items — save edits to existing ADO items (write-back).
+  // -------------------------------------------------------------------------
+  server.tool(
+    PLANNING_TOOLS.update_items,
+    "Update EXISTING Azure DevOps work items: save edits (title, description, acceptance criteria, state, area/iteration, assignee, tags) back to ADO by id. Only the fields you supply change. Supports dryRun (validate-only, no write). Per-item failures are isolated; items without a valid id or with no changes are skipped.",
+    {
+      project: z.string().describe("The Azure DevOps project the work items belong to."),
+      items: z.array(updateItemsSchema).describe("The edits to apply; each must include the work item's adoId and the fields to change."),
+      options: z.object({ dryRun: z.boolean().optional() }).optional().describe("Update options: dryRun validates without writing."),
+    },
+    async ({ project, items, options }) => {
+      try {
+        const connection = await connectionProvider();
+        const result = await updateWorkItems(connection, project, items as UpdateWorkItemInput[], (options as UpdateItemsOptions) ?? {});
+        return externalJsonResult(result, "azure devops work item update results");
+      } catch (error) {
+        return errorResult("Error updating work items", error);
       }
     }
   );

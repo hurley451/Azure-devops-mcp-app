@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import { WebApi } from "azure-devops-node-api";
-import { encodeFormattedValue } from "../../../utils.js";
+import { fieldOp, joinAcceptanceCriteria, markdownFieldOps, PatchOp, tagsValue } from "./field-ops.js";
 import {
   CreateApprovedOptions,
   CreateApprovedResult,
@@ -16,12 +16,6 @@ import {
   TYPES_WITH_ACCEPTANCE_CRITERIA,
 } from "./types.js";
 import { validateDraft } from "./validation.js";
-
-interface PatchOp {
-  op: string;
-  path: string;
-  value: unknown;
-}
 
 /** Reason text for an item that will not be created in this run. */
 function skipReason(status: DraftWorkItem["status"]): string {
@@ -72,13 +66,9 @@ function orderForCreation(items: DraftWorkItem[]): DraftWorkItem[] {
   return out;
 }
 
-function joinAcceptanceCriteria(criteria: string[]): string {
-  return criteria.map((c) => `- ${c}`).join("\n");
-}
-
 /** Build the JSON-patch document for one work item, plus any per-item warnings. */
 function buildPatchDocument(item: DraftWorkItem, options: CreateApprovedOptions, serverUrl: string, project: string, parentAdoId?: number): PatchOp[] {
-  const ops: PatchOp[] = [{ op: "add", path: "/fields/System.Title", value: item.title }];
+  const ops: PatchOp[] = [fieldOp("System.Title", item.title)];
 
   // Description (+ acceptance criteria for types without an AC field).
   const acHasField = TYPES_WITH_ACCEPTANCE_CRITERIA.includes(item.type);
@@ -88,31 +78,28 @@ function buildPatchDocument(item: DraftWorkItem, options: CreateApprovedOptions,
     description = description ? `${description}\n\n**Acceptance Criteria**\n${acText}` : `**Acceptance Criteria**\n${acText}`;
   }
   if (description.trim().length > 0) {
-    ops.push({ op: "add", path: "/fields/System.Description", value: encodeFormattedValue(description, "Markdown") });
-    ops.push({ op: "add", path: "/multilineFieldsFormat/System.Description", value: "Markdown" });
+    ops.push(...markdownFieldOps("System.Description", description));
   }
 
   if (acHasField && item.acceptanceCriteria && item.acceptanceCriteria.length > 0) {
-    const acText = joinAcceptanceCriteria(item.acceptanceCriteria);
-    ops.push({ op: "add", path: "/fields/Microsoft.VSTS.Common.AcceptanceCriteria", value: encodeFormattedValue(acText, "Markdown") });
-    ops.push({ op: "add", path: "/multilineFieldsFormat/Microsoft.VSTS.Common.AcceptanceCriteria", value: "Markdown" });
+    ops.push(...markdownFieldOps("Microsoft.VSTS.Common.AcceptanceCriteria", joinAcceptanceCriteria(item.acceptanceCriteria)));
   }
 
   const areaPath = item.areaPath ?? options.areaPath;
-  if (areaPath && areaPath.trim().length > 0) ops.push({ op: "add", path: "/fields/System.AreaPath", value: areaPath });
+  if (areaPath && areaPath.trim().length > 0) ops.push(fieldOp("System.AreaPath", areaPath));
 
   const iterationPath = item.iterationPath ?? options.iterationPath;
-  if (iterationPath && iterationPath.trim().length > 0) ops.push({ op: "add", path: "/fields/System.IterationPath", value: iterationPath });
+  if (iterationPath && iterationPath.trim().length > 0) ops.push(fieldOp("System.IterationPath", iterationPath));
 
   const assignedTo = item.assignedTo ?? options.assignedTo;
-  if (assignedTo && assignedTo.trim().length > 0) ops.push({ op: "add", path: "/fields/System.AssignedTo", value: assignedTo });
+  if (assignedTo && assignedTo.trim().length > 0) ops.push(fieldOp("System.AssignedTo", assignedTo));
 
   const tags = [...(item.tags ?? []), ...(options.tags ?? [])].map((t) => t.trim()).filter((t) => t.length > 0);
-  if (tags.length > 0) ops.push({ op: "add", path: "/fields/System.Tags", value: Array.from(new Set(tags)).join("; ") });
+  if (tags.length > 0) ops.push(fieldOp("System.Tags", tagsValue(tags)));
 
-  if (typeof item.priority === "number") ops.push({ op: "add", path: "/fields/Microsoft.VSTS.Common.Priority", value: item.priority });
-  if (typeof item.businessValue === "number") ops.push({ op: "add", path: "/fields/Microsoft.VSTS.Common.BusinessValue", value: item.businessValue });
-  if (typeof item.effort === "number") ops.push({ op: "add", path: "/fields/Microsoft.VSTS.Scheduling.Effort", value: item.effort });
+  if (typeof item.priority === "number") ops.push(fieldOp("Microsoft.VSTS.Common.Priority", item.priority));
+  if (typeof item.businessValue === "number") ops.push(fieldOp("Microsoft.VSTS.Common.BusinessValue", item.businessValue));
+  if (typeof item.effort === "number") ops.push(fieldOp("Microsoft.VSTS.Scheduling.Effort", item.effort));
 
   if (typeof parentAdoId === "number") {
     ops.push({
