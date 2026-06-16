@@ -90,7 +90,7 @@ function configurePlanningTools(server: McpServer, connectionProvider: () => Pro
           content: [
             {
               type: "resource" as const,
-              resource: { uri: live.uri, mimeType: live.mimeType, text: html, _meta: { ui: { "prefersBorder": true, "preferred-frame-size": { width: 1100, height: 760 } } } },
+              resource: { uri: live.uri, mimeType: live.mimeType, text: html, _meta: { ui: { "prefersBorder": true, "preferred-frame-size": { width: 1440, height: 960 } } } },
             },
             {
               type: "text" as const,

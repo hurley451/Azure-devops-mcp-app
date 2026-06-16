@@ -34,6 +34,13 @@
   .toggle { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
   main { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(320px, 2fr) minmax(260px, 1.3fr); gap: 1px; background: var(--line); overflow: hidden; min-height: 520px; }
   @media (max-width: 860px) { main { grid-template-columns: 1fr; } .pane { min-height: 240px; } }
+  /* Focus modes (R7.1): let one pane fill the full width within the host frame. */
+  main.focus-2 { grid-template-columns: 1fr; }
+  main.focus-2 > section:not(:nth-child(2)) { display: none; }
+  main.focus-3 { grid-template-columns: 1fr; }
+  main.focus-3 > section:not(:nth-child(3)) { display: none; }
+  .app:fullscreen { min-height: 100vh; background: var(--bg); }
+  header .vctl { display: inline-flex; gap: 6px; }
   .pane { background: var(--panel); overflow: auto; padding: 12px 14px; }
   .pane h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 8px; }
   .row { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
@@ -89,6 +96,10 @@
     <span class="toggle"><input type="checkbox" id="f-dryrun" checked /><label for="f-dryrun" style="margin:0;text-transform:none;letter-spacing:0">Dry Run</label></span>
     <button id="b-sync">Sync from ADO</button>
     <button id="b-create" class="primary">Create Approved</button>
+    <span class="vctl">
+      <button id="b-focus" title="Cycle which pane fills the width">Focus: all</button>
+      <button id="b-fullscreen" title="Toggle full screen (if the host allows it)">Full screen</button>
+    </span>
   </header>
 
   <main>
@@ -542,6 +553,27 @@
   byId("b-create").addEventListener("click", doCreate);
   byId("b-sync").addEventListener("click", doSync);
   byId("f-narrative").addEventListener("input", renderSummary);
+
+  // ---- view controls (R7.1): focus one pane / toggle full screen ---------
+  var FOCUS_MODES = ["", "focus-2", "focus-3"];
+  var FOCUS_LABELS = { "": "Focus: all", "focus-2": "Focus: backlog", "focus-3": "Focus: editor" };
+  var focusIdx = 0;
+  function toggleFocus(){
+    focusIdx = (focusIdx + 1) % FOCUS_MODES.length;
+    document.querySelector("main").className = FOCUS_MODES[focusIdx];
+    byId("b-focus").textContent = FOCUS_LABELS[FOCUS_MODES[focusIdx]];
+  }
+  function toggleFullscreen(){
+    try {
+      var root = document.querySelector(".app");
+      if (!document.fullscreenElement) {
+        if (root.requestFullscreen) { root.requestFullscreen().catch(function(){ log("Full screen not permitted by this host."); }); }
+        else { log("Full screen not supported by this host."); }
+      } else if (document.exitFullscreen) { document.exitFullscreen(); }
+    } catch (e) { log("Full screen unavailable: " + (e && e.message || e)); }
+  }
+  byId("b-focus").addEventListener("click", toggleFocus);
+  byId("b-fullscreen").addEventListener("click", toggleFullscreen);
   // The footer has no Validate trigger by default; inject one before the status area.
   var validateBtn = h("button", { class: "tiny", text: "Validate Draft", onclick: doValidate });
   byId("status").parentNode.insertBefore(validateBtn, byId("status"));
