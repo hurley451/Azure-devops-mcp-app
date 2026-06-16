@@ -39,14 +39,26 @@ full `scan_drift` = **0 drift**.
 
 ## Remaining work (OPEN — do these next)
 
-### R1 — Verify a REAL (non-dry-run) ADO create [priority: high]
+### R1 — Verify a REAL (non-dry-run) ADO create [priority: high] — LIVE-VERIFIED (with finding)
 
-Acceptance #12/#13/#14 are unit-tested only; never executed against ADO.
+Executed live `2026-06-16` against **anadak / mcp-test-proj** (Agile process, azcli; server
+minted the token internally — no shell tokens). User authorized the real write and chose to keep
+the created items for inspection.
 
-- **Pre:** get user's org + a **throwaway/test** project; user runs/authorizes (azcli). Do NOT mint tokens yourself.
-- Show the dry-run plan, get explicit confirmation, then `create_approved` with `dryRun:false`.
-- **Check (executable):** created items return numeric `adoId` + `_workitems/edit/{id}` URL; in ADO the children carry a `System.LinkTypes.Hierarchy-Reverse` link to their parent; `sync` on those ids returns current state. Then **delete the test items** (or use a disposable project).
-- Out-of-band manual step; record the result back here.
+- **Result:** dry-run plan shown → user confirmed → `create_approved` `dryRun:false`. Created:
+  Epic **253**, Feature **254** (linked → 253), Task **255**. **PBI failed** — see below.
+- **Acceptance #12** ✅ numeric `adoId` + `_workitems/edit/{id}` URL returned. **#13** ✅ the
+  Feature→Epic `System.LinkTypes.Hierarchy-Reverse` link is **live in ADO** (confirmed via `sync`:
+  254 reports `parentAdoId:253`). **#14** ✅. The create + parent-link mechanism is proven end-to-end.
+- **Finding (now fixed in R6):** the project is **Agile**, but `get_context` (called without a team)
+  reported `pbiTypeName:"Product Backlog Item"` (Scrum-only) → the PBI create failed with a generic
+  "no id" error, and its child Task 255 was orphaned. No invalid item was written (clean failure).
+- **Left in ADO (user keeps):** 253/254/255, tagged `mcp-r1-test`. Delete when done inspecting
+  (recycle bin / `wit_update_work_item` state, or just remove the 3 by id).
+- **Remaining to fully close #13 for a 4-level chain:** re-run a corrected draft
+  (Epic→Feature→**User Story**→Task) once the R6 fix is deployed (needs R4 to repoint Desktop at the
+  rebuilt `dist`), or drive it through the current server using `User Story` explicitly. Optional —
+  the link mechanism is already proven.
 
 ### R2 — Architectural conformance baseline (arch-guardrail-mcp) [priority: high] — DONE ✅
 
@@ -93,6 +105,23 @@ The `dist` Desktop launches is inside this worktree; it breaks if the worktree i
 - [ ] Evaluate migrating to `@mcp-ui/server` / `@modelcontextprotocol/ext-apps` once host support stabilizes.
 - [ ] Host-render polish: the inline frame is functional but cramped; placement is host-controlled
       (Claude Desktop renders inline, no right-pane API).
+
+### R6 — Fix process-template hint for non-Scrum projects [priority: high] — DONE ✅ (commit 8dd6431)
+
+Discovered by R1: `get_context` reported a Scrum requirement type for an Agile project, causing the
+real PBI create to fail.
+
+- [x] `context.ts`: `deriveProcessHints()` selects each type name from the project's **actual** work
+      item types via `getWorkItemTypes(project)` (team-independent), requirement type preferred in the
+      order `User Story → Product Backlog Item → Requirement → Issue`; best-effort (warning on failure,
+      defaults retained). Removed the team-only backlog inference; backlogs still populated for the UI.
+- [x] `create-approved.ts`: the "no created work item id" error now names the type and explains it
+      likely doesn't exist in the project's process.
+- **Check (passed):** `build` + `test` (**1012**/25) + `eslint` + `format-check` + `validate-tools`
+  green. New tests cover per-process derivation without a team (Agile/Scrum/CMMI/Basic), best-effort
+  isolation (warning + retained default), and the actionable no-id error. **Arch:** `plan_change` +
+  `review_diff` approved (plan `a7451445`); `scan_drift` (7 files) = 0 drift. **Code:** independent
+  reviewer = clean (its one test-hardening note applied).
 
 ## Working agreements (from this project's history — honor them)
 
