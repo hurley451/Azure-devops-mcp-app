@@ -62,3 +62,13 @@ export const createApprovedOptionsSchema = z
     tags: z.array(z.string()).optional(),
   })
   .optional();
+
+export const loadBacklogOptionsSchema = z
+  .object({
+    team: z.string().optional(),
+    areaPath: z.string().optional(),
+    wiql: z.string().optional(),
+    top: z.coerce.number().int().positive().max(1000).optional(),
+    ids: z.array(z.coerce.number().int().positive()).max(1000).optional(),
+  })
+  .optional();

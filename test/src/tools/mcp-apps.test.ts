@@ -56,10 +56,18 @@ describe("configureMcpAppsTools", () => {
     expect(result.content[0].text).toContain("pong");
   });
 
-  it("registers all six callable planning tools plus the UI resource", () => {
+  it("registers all callable planning tools plus the UI resource", () => {
     const names = server.tool.mock.calls.map((c) => c[0]);
     expect(names).toEqual(
-      expect.arrayContaining([PLANNING_TOOLS.get_context, PLANNING_TOOLS.generate_draft, PLANNING_TOOLS.validate_draft, PLANNING_TOOLS.create_approved, PLANNING_TOOLS.sync, PLANNING_TOOLS.export])
+      expect.arrayContaining([
+        PLANNING_TOOLS.get_context,
+        PLANNING_TOOLS.generate_draft,
+        PLANNING_TOOLS.validate_draft,
+        PLANNING_TOOLS.create_approved,
+        PLANNING_TOOLS.load_backlog,
+        PLANNING_TOOLS.sync,
+        PLANNING_TOOLS.export,
+      ])
     );
     expect(server.registerResource).toHaveBeenCalledTimes(1);
     expect(server.registerResource.mock.calls[0][1]).toMatch(/^ui:\/\/ado-planning\//);

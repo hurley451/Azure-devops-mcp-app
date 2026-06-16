@@ -8,10 +8,11 @@ import { z } from "zod";
 
 import { elicitProject } from "../../../shared/elicitations.js";
 import { spotlightContent } from "../../../shared/content-safety.js";
-import { createApprovedOptionsSchema, exportFormatSchema, planningDraftSchema, planningModeSchema } from "./schema.js";
+import { createApprovedOptionsSchema, exportFormatSchema, loadBacklogOptionsSchema, planningDraftSchema, planningModeSchema } from "./schema.js";
 import { validateDraft } from "./validation.js";
 import { createApprovedItems } from "./create-approved.js";
 import { syncWorkItems } from "./sync.js";
+import { loadBacklog, LoadBacklogOptions } from "./backlog.js";
 import { exportDraft } from "./export.js";
 import { getPlanningContext } from "./context.js";
 import { buildGenerationContract } from "./generate.js";
@@ -24,6 +25,7 @@ const PLANNING_TOOLS = {
   generate_draft: "mcp_ado_app_planning_generate_draft",
   validate_draft: "mcp_ado_app_planning_validate_draft",
   create_approved: "mcp_ado_app_planning_create_approved",
+  load_backlog: "mcp_ado_app_planning_load_backlog",
   sync: "mcp_ado_app_planning_sync",
   export: "mcp_ado_app_planning_export",
 };
@@ -216,6 +218,27 @@ function configurePlanningTools(server: McpServer, connectionProvider: () => Pro
         return externalJsonResult(result, "azure devops work item creation results");
       } catch (error) {
         return errorResult("Error creating approved items", error);
+      }
+    }
+  );
+
+  // -------------------------------------------------------------------------
+  // planning_load_backlog — load a project's existing ADO items into a draft.
+  // -------------------------------------------------------------------------
+  server.tool(
+    PLANNING_TOOLS.load_backlog,
+    "Load a project's EXISTING Azure DevOps work items into a planning draft for viewing and editing (not just newly generated items). Returns items with status 'created' and their ADO ids/links so the workspace can show the current backlog. Supports filtering by team, area path, an explicit WIQL query, a top limit, or explicit ids.",
+    {
+      project: z.string().describe("The Azure DevOps project whose backlog to load."),
+      options: loadBacklogOptionsSchema.describe("Load options: team, areaPath, wiql, top (default 200), or explicit ids."),
+    },
+    async ({ project, options }) => {
+      try {
+        const connection = await connectionProvider();
+        const result = await loadBacklog(connection, project, (options as LoadBacklogOptions) ?? {});
+        return externalJsonResult(result, "azure devops backlog items");
+      } catch (error) {
+        return errorResult("Error loading backlog", error);
       }
     }
   );
