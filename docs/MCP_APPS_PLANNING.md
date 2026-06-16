@@ -74,8 +74,16 @@ is loaded.
 | `mcp_ado_app_planning_generate_draft`  | Return a model-mediated generation contract (see below).                                       |
 | `mcp_ado_app_planning_validate_draft`  | Validate a draft hierarchy; return a normalized copy plus errors/warnings. No writes.          |
 | `mcp_ado_app_planning_create_approved` | Create the **approved** items in ADO, parents first, linking children. Supports `dryRun`.      |
+| `mcp_ado_app_planning_load_backlog`    | Load a project's **existing** ADO work items into a draft (WIQL/area/ids) for viewing/editing. |
+| `mcp_ado_app_planning_update_items`    | Save edits to **existing** items back to ADO (only changed fields). `dryRun` = validate-only.  |
 | `mcp_ado_app_planning_sync`            | Refresh created work items from ADO by id; report current state and missing ids.               |
 | `mcp_ado_app_planning_export`          | Export the draft as JSON, YAML, or Markdown.                                                   |
+
+The workspace supports the full **create → view → modify** round-trip: **Load Backlog**
+pulls existing items in; the redesigned backlog manager (filters by text/type/state) and
+detail editor let you edit them; **Save to ADO** writes changes back via `update_items`
+(honoring the Dry Run toggle). The working draft is persisted in the browser (localStorage)
+so it survives reopen. **Focus** (single-pane) and **Full screen** expand the inline frame.
 
 ### How generation works (model-mediated, "Option A")
 
