@@ -73,6 +73,18 @@
   .insp input, .insp select, .insp textarea { width: 100%; }
   .ac-line { display: flex; gap: 5px; margin-bottom: 4px; }
   .ac-line input { flex: 1; }
+  /* R7.4 backlog manager + R7.5 detail editor */
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+  .filters input, .filters select { font-size: 12px; padding: 4px 6px; }
+  .filters .fsearch { flex: 1; min-width: 120px; }
+  .filters .count { font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .card .sub { font-size: 11px; color: var(--muted); margin-top: 3px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .card .top .title { font-size: 12.5px; }
+  .insp .section { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 14px 0 6px; border-bottom: 1px solid var(--line); padding-bottom: 3px; }
+  .insp .fld label { margin-top: 0; }
+  .insp .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .insp .save-row { position: sticky; bottom: 0; background: var(--panel); padding: 8px 0 2px; margin-top: 12px; border-top: 1px solid var(--line); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .insp .save-note { font-size: 11px; color: var(--muted); }
   footer { background: var(--panel); border-top: 1px solid var(--line); padding: 8px 14px; max-height: 220px; overflow: auto; }
   footer h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 6px; }
   .log { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; white-space: pre-wrap; }
@@ -92,6 +104,7 @@
     <label class="field"><span>Area Path</span><select id="f-area"><option value="">(default)</option></select></label>
     <label class="field"><span>Iteration</span><select id="f-iter"><option value="">(default)</option></select></label>
     <button id="b-context">Load Context</button>
+    <button id="b-loadbacklog" title="Load the project's existing work items from Azure DevOps">Load Backlog</button>
     <span class="grow"></span>
     <span class="toggle"><input type="checkbox" id="f-dryrun" checked /><label for="f-dryrun" style="margin:0;text-transform:none;letter-spacing:0">Dry Run</label></span>
     <button id="b-sync">Sync from ADO</button>
@@ -121,7 +134,8 @@
 
     <section class="pane">
       <h2>Backlog Map</h2>
-      <div class="tree" id="tree"><div class="empty">No draft yet. Load Sample, Import JSON, or ask Claude to Generate Structure.</div></div>
+      <div class="filters" id="filters"></div>
+      <div class="tree" id="tree"><div class="empty">No draft yet. Load Backlog, Load Sample, Import JSON, or ask Claude to Generate Structure.</div></div>
     </section>
 
     <section class="pane insp">
@@ -146,6 +160,8 @@
     generate: "mcp_ado_app_planning_generate_draft",
     validate: "mcp_ado_app_planning_validate_draft",
     create: "mcp_ado_app_planning_create_approved",
+    loadBacklog: "mcp_ado_app_planning_load_backlog",
+    update: "mcp_ado_app_planning_update_items",
     sync: "mcp_ado_app_planning_sync",
     export: "mcp_ado_app_planning_export"
   };
@@ -153,7 +169,7 @@
   var TYPES = ["Epic", "Feature", "Product Backlog Item", "User Story", "Task", "Bug"];
   var STATUSES = ["draft", "approved", "rejected", "needs_rewrite", "created", "failed"];
 
-  var state = { draft: null, selectedId: null, lastValidation: null };
+  var state = { draft: null, selectedId: null, lastValidation: null, filter: { q: "", type: "", status: "" } };
 
   // ---- MCP postMessage bridge -------------------------------------------
   var CALL_TIMEOUT_MS = 20000;
@@ -243,6 +259,7 @@
 
   // ---- rendering ---------------------------------------------------------
   function render(){
+    renderFilters();
     renderSummary();
     renderTree();
     renderInspector();
@@ -262,19 +279,60 @@
 
   function statusBadge(s){ return h("span", { class: "badge st-" + s, text: s.replace("_", " ") }); }
 
+  // ---- filtering (R7.4) --------------------------------------------------
+  function filterActive(){ return !!(state.filter.q || state.filter.type || state.filter.status); }
+  function applyFilters(items){
+    var fq = (state.filter.q || "").toLowerCase(), ft = state.filter.type, fs = state.filter.status;
+    return items.filter(function(it){
+      if (ft && it.type !== ft) return false;
+      if (fs && it.status !== fs) return false;
+      if (fq) {
+        var hay = ((it.title || "") + " " + (it.localId || "") + " " + (it.adoId || "")).toLowerCase();
+        if (hay.indexOf(fq) < 0) return false;
+      }
+      return true;
+    });
+  }
+  function updateCount(){
+    var el = byId("fcount"); if (!el) return;
+    var f = flat(); var shown = filterActive() ? applyFilters(f).length : f.length;
+    el.textContent = shown + " / " + f.length + " item" + (f.length === 1 ? "" : "s");
+  }
+  function renderFilters(){
+    var host = byId("filters");
+    if (!host) return;
+    host.innerHTML = "";
+    if (!flat().length) return;
+    var q = h("input", { class: "fsearch", placeholder: "Search title or id", value: state.filter.q });
+    q.addEventListener("input", function(){ state.filter.q = q.value; renderTree(); updateCount(); });
+    var typeSel = h("select", {}, [h("option", { value: "", text: "All types" })].concat(TYPES.map(function(t){ return h("option", { value: t, text: t, selected: t === state.filter.type ? "selected" : null }); })));
+    typeSel.addEventListener("change", function(){ state.filter.type = typeSel.value; renderTree(); updateCount(); });
+    var stSel = h("select", {}, [h("option", { value: "", text: "All states" })].concat(STATUSES.map(function(s){ return h("option", { value: s, text: s.replace("_", " "), selected: s === state.filter.status ? "selected" : null }); })));
+    stSel.addEventListener("change", function(){ state.filter.status = stSel.value; renderTree(); updateCount(); });
+    host.appendChild(q); host.appendChild(typeSel); host.appendChild(stSel);
+    host.appendChild(h("span", { class: "count", id: "fcount" }));
+    updateCount();
+  }
+
   function card(item, depth){
-    var box = h("div", { class: "card" + (item.localId === state.selectedId ? " sel" : ""), style: "margin-left:" + (depth * 18) + "px", "data-id": item.localId });
+    var box = h("div", { class: "card" + (item.localId === state.selectedId ? " sel" : ""), style: "margin-left:" + (depth * 16) + "px", "data-id": item.localId });
     box.style.borderLeftColor = "var(--" + typeStyle(item.type).color + ")";
     var kidCount = item.__kids ? item.__kids.length : 0;
     var top = h("div", { class: "top" }, [
       h("span", { class: "badge " + typeClass(item.type), text: item.type }),
       h("span", { class: "title", text: item.title || "(untitled)" }),
       statusBadge(item.status),
-      kidCount ? h("span", { class: "muted", text: kidCount + " child" + (kidCount > 1 ? "ren" : "") }) : null,
       item.adoId ? h("a", { class: "adolink", href: item.url || "#", target: "_blank", text: "#" + item.adoId }) : null
     ]);
     top.addEventListener("click", function(){ state.selectedId = item.localId; render(); });
     box.appendChild(top);
+
+    var bits = [];
+    if (kidCount) bits.push(kidCount + " child" + (kidCount > 1 ? "ren" : ""));
+    if (item.state) bits.push("State: " + item.state);
+    if (item.assignedTo) bits.push(item.assignedTo);
+    if (item.areaPath) bits.push(String(item.areaPath).split("\\").pop());
+    if (bits.length) box.appendChild(h("div", { class: "sub" }, bits.map(function(s){ return h("span", { text: s }); })));
 
     var acts = h("div", { class: "acts" }, [
       h("button", { class: "tiny", text: "Approve", onclick: function(e){ e.stopPropagation(); setItemStatus(item.localId, "approved"); } }),
@@ -289,7 +347,13 @@
     var host = byId("tree");
     host.innerHTML = "";
     var f = flat();
-    if (!f.length) { host.appendChild(h("div", { class: "empty", text: "No draft yet. Load Sample, Import JSON, or ask Claude to Generate Structure." })); return; }
+    if (!f.length) { host.appendChild(h("div", { class: "empty", text: "No draft yet. Load Backlog, Load Sample, Import JSON, or ask Claude to Generate Structure." })); return; }
+    if (filterActive()) {
+      var matches = applyFilters(f);
+      if (!matches.length) { host.appendChild(h("div", { class: "empty", text: "No items match the filters." })); return; }
+      matches.forEach(function(n){ host.appendChild(card(n, 0)); });
+      return;
+    }
     var roots = buildTree(f);
     (function walk(nodes, depth){
       nodes.forEach(function(n){ host.appendChild(card(n, depth)); if (n.__kids && n.__kids.length) walk(n.__kids, depth + 1); });
@@ -328,26 +392,36 @@
     }
     renderAc();
 
-    host.appendChild(field("Local ID", h("input", { value: item.localId, disabled: "disabled" })));
+    function section(label){ host.appendChild(h("div", { class: "section", text: label })); }
+    function tagsField(){ var i = h("input", { value: (item.tags || []).join(", ") }); i.addEventListener("input", function(){ item.tags = i.value.split(",").map(function(s){ return s.trim(); }).filter(Boolean); }); return i; }
+
+    section(item.adoId ? "Item  #" + item.adoId : "Item");
     host.appendChild(field("Type", typeSel));
     host.appendChild(field("Title", text("title")));
+    host.appendChild(field("Parent", parentSel));
+
+    section("Details");
     host.appendChild(field("Description", desc));
     host.appendChild(field("Acceptance Criteria", acWrap));
-    host.appendChild(field("Parent", parentSel));
-    host.appendChild(field("Area Path", text("areaPath")));
-    host.appendChild(field("Iteration Path", text("iterationPath")));
-    host.appendChild(field("Assigned To", text("assignedTo")));
-    host.appendChild(field("Tags (comma separated)", (function(){ var i = h("input", { value: (item.tags || []).join(", ") }); i.addEventListener("input", function(){ item.tags = i.value.split(",").map(function(s){ return s.trim(); }).filter(Boolean); }); return i; })()));
-    host.appendChild(field("Priority", num("priority")));
-    host.appendChild(field("Business Value", num("businessValue")));
-    host.appendChild(field("Effort", num("effort")));
-    host.appendChild(field("Status", (function(){ var s = h("select", {}, STATUSES.map(function(st){ return h("option", { value: st, text: st, selected: st === item.status ? "selected" : null }); })); s.addEventListener("change", function(){ item.status = s.value; render(); }); return s; })()));
 
-    host.appendChild(h("div", { class: "row" }, [
+    section("Azure DevOps fields");
+    host.appendChild(h("div", { class: "grid2" }, [field("Area Path", text("areaPath")), field("Iteration Path", text("iterationPath"))]));
+    host.appendChild(h("div", { class: "grid2" }, [field("Assigned To", text("assignedTo")), field("State", text("state"))]));
+    host.appendChild(field("Tags (comma separated)", tagsField()));
+    host.appendChild(h("div", { class: "grid2" }, [field("Priority", num("priority")), field("Effort", num("effort"))]));
+    host.appendChild(field("Business Value", num("businessValue")));
+
+    section("Planning status");
+    host.appendChild(field("Status", (function(){ var s = h("select", {}, STATUSES.map(function(st){ return h("option", { value: st, text: st.replace("_", " "), selected: st === item.status ? "selected" : null }); })); s.addEventListener("change", function(){ item.status = s.value; render(); }); return s; })()));
+
+    var saveRow = h("div", { class: "save-row" }, [
       h("button", { class: "primary tiny", text: "Approve", onclick: function(){ setItemStatus(item.localId, "approved"); } }),
       h("button", { class: "tiny", text: "Reject", onclick: function(){ setItemStatus(item.localId, "rejected"); } }),
-      item.url ? h("a", { class: "adolink", href: item.url, target: "_blank", text: "Open in ADO" }) : null
-    ]));
+      item.adoId ? h("button", { class: "primary tiny", text: "Save to ADO", onclick: function(){ doSaveItem(item); } }) : null,
+      item.url ? h("a", { class: "adolink", href: item.url, target: "_blank", text: "Open #" + item.adoId }) : null,
+      item.adoId && byId("f-dryrun") && byId("f-dryrun").checked ? h("span", { class: "save-note", text: "dry run on — validates only" }) : null
+    ]);
+    host.appendChild(saveRow);
   }
 
   function setItemStatus(id, status){ var it = findItem(id); if (it) { it.status = status; render(); } }
@@ -543,8 +617,57 @@
     values.forEach(function(v){ sel.appendChild(h("option", { value: v, text: v, selected: v === def ? "selected" : null })); });
   }
 
+  // ---- round-trip: load existing backlog / save edits back (R7.4/R7.5) ---
+  function doLoadBacklog(){
+    var project = val("f-project");
+    if (!project) { log("Enter a project first."); return; }
+    if (!bridge.hosted()) { log("Load Backlog requires an MCP host."); return; }
+    var area = val("f-area");
+    var opts = {};
+    if (area) opts.areaPath = area;
+    log("Loading backlog for " + project + (area ? " (area " + area + ")" : "") + "...");
+    bridge.call(TOOLS.loadBacklog, { project: project, options: opts }).then(function(r){
+      var res = toolJson(r);
+      if (!res || !res.draft) { log("Load Backlog returned no draft."); return; }
+      loadDraft(res.draft);
+      var n = res.draft.items.length, skip = (res.skipped || []).length;
+      (res.warnings || []).forEach(function(w){ log((w.code || "") + ": " + w.message); });
+      log("Loaded " + n + " item(s)" + (skip ? ", " + skip + " skipped (unsupported types)" : "") + ".");
+      setStatus(h("div", {}, [pill("ok", "Backlog loaded"), h("span", { text: n + " item(s) from " + project })]));
+    }).catch(function(err){ log("Load Backlog failed: " + (err && err.message || err)); });
+  }
+
+  function doSaveItem(item){
+    if (!item || !item.adoId) { log("This item has no ADO id; create it first via Create Approved."); return; }
+    if (!bridge.hosted()) { log("Save requires an MCP host."); return; }
+    var dryRun = byId("f-dryrun").checked;
+    var edit = { adoId: item.adoId };
+    var REQUIRED = { title: true }; // title may not be blanked; other fields accept "" as a deliberate clear
+    ["title", "description", "state", "areaPath", "iterationPath", "assignedTo"].forEach(function(k){
+      if (item[k] === undefined) return;
+      if (REQUIRED[k] && item[k] === "") return;
+      edit[k] = item[k];
+    });
+    if (item.acceptanceCriteria) edit.acceptanceCriteria = item.acceptanceCriteria;
+    if (item.tags) edit.tags = item.tags;
+    log((dryRun ? "Validating" : "Saving") + " #" + item.adoId + " to ADO...");
+    bridge.call(TOOLS.update, { project: ensureDraft().project, items: [edit], options: { dryRun: dryRun } }).then(function(r){
+      var res = toolJson(r);
+      if (!res) { log("Update returned no JSON."); return; }
+      if (res.failed && res.failed.length) {
+        res.failed.forEach(function(f){ log("FAILED #" + f.adoId + ": " + f.error); });
+        setStatus(h("div", {}, [pill("bad", "Update failed"), h("span", { text: "#" + item.adoId })]));
+        return;
+      }
+      var u = (res.updated || [])[0];
+      log((res.dryRun ? "Validated" : "Saved") + " #" + item.adoId + (u && u.fields ? " (" + u.fields.join(", ") + ")" : "") + ".");
+      setStatus(h("div", {}, [pill("ok", res.dryRun ? "Validated (dry run)" : "Saved to ADO"), h("span", { text: "#" + item.adoId + (u && u.fields ? " — " + u.fields.join(", ") : "") })]));
+    }).catch(function(err){ log("Save failed: " + (err && err.message || err)); });
+  }
+
   // ---- wire up -----------------------------------------------------------
   byId("b-context").addEventListener("click", doContext);
+  byId("b-loadbacklog").addEventListener("click", doLoadBacklog);
   byId("b-generate").addEventListener("click", doGenerate);
   byId("b-import").addEventListener("click", doImport);
   byId("b-sample").addEventListener("click", function(){ loadDraft(JSON.parse(JSON.stringify(SAMPLE))); log("Sample draft loaded."); });
