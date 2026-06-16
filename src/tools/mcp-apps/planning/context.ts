@@ -43,6 +43,22 @@ const DEFAULT_PROCESS_HINTS: ProcessHints = {
   taskTypeName: "Task",
 };
 
+/**
+ * Pick the project's real type names from the set of work item types it actually
+ * defines, so the requirement-level hint is correct for any process (Agile uses
+ * "User Story", Scrum "Product Backlog Item", CMMI "Requirement", Basic "Issue").
+ * Falls back to the supplied defaults for any type the project does not expose.
+ */
+function deriveProcessHints(typeNames: Set<string>, fallback: ProcessHints): ProcessHints {
+  const pick = (...candidates: string[]): string | undefined => candidates.find((c) => typeNames.has(c));
+  return {
+    epicTypeName: pick("Epic") ?? fallback.epicTypeName,
+    featureTypeName: pick("Feature") ?? fallback.featureTypeName,
+    pbiTypeName: pick("User Story", "Product Backlog Item", "Requirement", "Issue") ?? fallback.pbiTypeName,
+    taskTypeName: pick("Task") ?? fallback.taskTypeName,
+  };
+}
+
 /** Walk a classification-node tree, collecting full backslash-delimited paths. */
 function collectPaths(node: WorkItemClassificationNode, prefix: string, out: string[]): void {
   const name = node.name ?? "";
@@ -93,6 +109,18 @@ export async function getPlanningContext(connection: WebApi, project: string, te
     warnings.push(`Could not list area/iteration paths: ${error instanceof Error ? error.message : "unknown error"}`);
   }
 
+  // Derive process hints from the project's real work item types so the
+  // requirement-type name is correct without needing a team (Agile -> User Story,
+  // Scrum -> Product Backlog Item, etc.). Best-effort: keep defaults on failure.
+  try {
+    const witApi = await connection.getWorkItemTrackingApi();
+    const types = await witApi.getWorkItemTypes(project);
+    const typeNames = new Set((types ?? []).map((t) => t.name ?? "").filter((n) => n.length > 0));
+    result.processHints = deriveProcessHints(typeNames, result.processHints);
+  } catch (error) {
+    warnings.push(`Could not list work item types: ${error instanceof Error ? error.message : "unknown error"}`);
+  }
+
   if (team) {
     try {
       const workApi = await connection.getWorkApi();
@@ -104,11 +132,8 @@ export async function getPlanningContext(connection: WebApi, project: string, te
         rank: b.rank,
         workItemTypes: (b.workItemTypes ?? []).map((w) => w.name ?? "").filter((n) => n.length > 0),
       }));
-
-      // Infer the requirement-level type name from the backlogs (Agile uses User Story).
-      const allTypes = result.backlogs.flatMap((b) => b.workItemTypes ?? []);
-      if (allTypes.includes("User Story")) result.processHints.pbiTypeName = "User Story";
-      else if (allTypes.includes("Product Backlog Item")) result.processHints.pbiTypeName = "Product Backlog Item";
+      // Requirement-type inference now comes from the project's work item types
+      // (see deriveProcessHints above), which works with or without a team.
     } catch (error) {
       warnings.push(`Could not list backlogs: ${error instanceof Error ? error.message : "unknown error"}`);
     }

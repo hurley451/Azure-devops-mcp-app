@@ -216,7 +216,12 @@ export async function createApprovedItems(connection: WebApi, project: string, d
       const document = buildPatchDocument(item, options, serverUrl, project, parentAdoId);
       const newWorkItem = await workItemApi.createWorkItem(null, document, project, item.type);
       if (!newWorkItem || typeof newWorkItem.id !== "number") {
-        failed.push({ localId: item.localId, type: item.type, title: item.title, error: "Azure DevOps did not return a created work item id." });
+        failed.push({
+          localId: item.localId,
+          type: item.type,
+          title: item.title,
+          error: `Azure DevOps did not return a created work item id for type '${item.type}'. This usually means the type does not exist in the project's process (e.g. 'Product Backlog Item' exists only in Scrum; Agile projects use 'User Story').`,
+        });
         continue;
       }
       adoMap.set(item.localId, newWorkItem.id);

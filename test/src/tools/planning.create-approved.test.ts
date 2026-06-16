@@ -119,6 +119,24 @@ describe("createApprovedItems", () => {
     expect(result.created.some((c) => c.localId === "task-001")).toBe(true);
   });
 
+  it("reports an actionable error naming the type when ADO returns no id (e.g. wrong process type)", async () => {
+    // Simulate ADO accepting the call but returning no id for "Product Backlog Item"
+    // (the real-world Agile-project failure: that type does not exist there).
+    createWorkItem.mockImplementation(async (_doc: unknown, document: PatchOp[], _project: string, type: string) => {
+      if (type === "Product Backlog Item") return {};
+      createdTypesInOrder.push(type);
+      return { id: Math.floor(Math.random() * 1000) + 1, _document: document };
+    });
+    const result = await createApprovedItems(connection, "Proj", fullHierarchy(), {});
+    const pbiFail = result.failed.find((f) => f.localId === "pbi-001");
+    expect(pbiFail).toBeDefined();
+    expect(pbiFail?.error).toContain("Product Backlog Item");
+    expect(pbiFail?.error).toContain("process");
+    // Epic + Feature still created; the orphaned Task is created without a parent link.
+    expect(result.created.some((c) => c.localId === "epic-001")).toBe(true);
+    expect(result.created.some((c) => c.localId === "task-001" && c.parentAdoId === undefined)).toBe(true);
+  });
+
   it("aborts before any write when the draft is fatally invalid", async () => {
     const invalid = draft([{ localId: "epic-001", type: "Epic", title: "", status: "approved" }]);
     const result = await createApprovedItems(connection, "Proj", invalid, {});
