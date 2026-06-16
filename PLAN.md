@@ -53,8 +53,8 @@ the created items for inspection.
 - **Finding (now fixed in R6):** the project is **Agile**, but `get_context` (called without a team)
   reported `pbiTypeName:"Product Backlog Item"` (Scrum-only) → the PBI create failed with a generic
   "no id" error, and its child Task 255 was orphaned. No invalid item was written (clean failure).
-- **Left in ADO (user keeps):** 253/254/255, tagged `mcp-r1-test`. Delete when done inspecting
-  (recycle bin / `wit_update_work_item` state, or just remove the 3 by id).
+- **Cleanup (done 2026-06-16):** 253/254/255 set to `System.State = Removed` (off the backlog/board;
+  recoverable). No hard-delete tool is exposed by this server; the Removed state is the cleanup path.
 - **Remaining to fully close #13 for a 4-level chain:** re-run a corrected draft
   (Epic→Feature→**User Story**→Task) once the R6 fix is deployed (needs R4 to repoint Desktop at the
   rebuilt `dist`), or drive it through the current server using `User Story` explicitly. Optional —
@@ -92,12 +92,21 @@ repo-autopilot's second axis is now established; baseline committed.
   raw copy. **Arch axis:** `plan_change` + `review_diff` approved (plan `cf48c3d4`); `scan_drift`
   (5 changed files) = 0 drift. **Code axis:** independent code-reviewer verdict = clean.
 
-### R4 — Durability of the Desktop deployment [priority: medium]
+### R4 — Durability of the Desktop deployment [priority: medium] — DONE ✅ (pending user respawn)
 
-The `dist` Desktop launches is inside this worktree; it breaks if the worktree is cleaned.
+The Desktop server previously launched `dist` from the ephemeral worktree
+`vibrant-aryabhata-2e7776` (CONTEXT #13) — broke if that worktree was cleaned, and ran pre-R6 code.
 
-- **Check:** point the Desktop `ado-planning` server (and `ADO_PLANNING_UI_PATH`) at a **stable**
-  checkout's `dist`/source, rebuild there, respawn, re-run `open`.
+- **Done (2026-06-16):** branch merged to local `main` (`a5a7828`); ran `npm install` + `npm run build`
+  in the **main checkout** `/Users/mhurley/Development/Azure-devops-mcp-app` so its `dist` carries R6
+  (verified `deriveProcessHints` in `dist/.../context.js`). Edited `claude_desktop_config.json`
+  (backup `claude_desktop_config.json.bak-r4`) to launch `ado-planning` from the main checkout's
+  `dist/index.js` (durable, not a worktree). No `ADO_PLANNING_UI_PATH` override — prod uses the
+  compiled-in UI.
+- **Remaining manual step (user):** respawn the `ado-planning` connector (toggle off/on or quit+reopen
+  Claude Desktop) so the new path + R6 take effect. Then optionally re-verify R6 live: `get_context`
+  on the Agile `mcp-test-proj` (no team) should report `pbiTypeName: "User Story"`, and a corrected
+  Epic→Feature→User Story→Task draft should create a full linked chain.
 
 ### R5 — Optional enhancements [priority: low]
 
