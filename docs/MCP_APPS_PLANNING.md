@@ -154,9 +154,36 @@ criteria, unexpected root type) do not.
 `planning_open` returns a self-contained HTML UI (all CSS/JS inline, so it
 satisfies a default-deny CSP with no external network access). The resource uses
 the MCP Apps MIME type `text/html;profile=mcp-app` and a cache-busted URI of the
-form `ui://ado-planning/{buildHash}/index.html`, so a rebuilt UI is never served
+form `ui://ado-planning/{buildHash}/index.html`, so a changed UI is never served
 stale from a host cache. The UI communicates with the server over the MCP Apps
 `postMessage` bridge (JSON-RPC `tools/call` to `window.parent`).
+
+### Editing the UI
+
+The HTML source of truth is [`ui/workspace.html`](../src/tools/mcp-apps/planning/ui/workspace.html).
+`npm run build:ui` (run automatically by `npm run build`) regenerates the
+compiled-in copy `ui.ts` from it via `JSON.stringify`, so workspace.html may use
+any characters freely. Both files are in `.prettierignore`.
+
+`planning_open` reads the HTML and recomputes the cache-bust hash **on every
+call**, so the URI changes whenever the content changes.
+
+**Live iteration without a rebuild or restart:** set `ADO_PLANNING_UI_PATH` to an
+absolute path to an HTML file. When set, `open` re-reads that file each call, so
+editing it updates the UI on the next `open` — no rebuild, no server respawn. In
+a Claude Desktop config, point it at the source file:
+
+```json
+{
+  "mcpServers": {
+    "ado-planning": {
+      "command": "/bin/zsh",
+      "args": ["-lc", "exec node /abs/path/dist/index.js YOUR_ORG -d core work work-items mcp-apps -a azcli"],
+      "env": { "ADO_PLANNING_UI_PATH": "/abs/path/src/tools/mcp-apps/planning/ui/workspace.html" }
+    }
+  }
+}
+```
 
 ## Known host limitations
 

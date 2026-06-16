@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ADO Planning Workspace</title>
+<!--BOOTSTRAP-->
+
+<style>
+  :root {
+    --bg: #f5f6f8; --panel: #ffffff; --ink: #1b1f23; --muted: #6b7280;
+    --line: #e3e6ea; --accent: #0b5cad; --accent-soft: #e7f0fb;
+    --draft: #6b7280; --approved: #137333; --approved-bg: #e6f4ea;
+    --rewrite: #b06000; --rewrite-bg: #fdf0db; --rejected: #b3261e; --rejected-bg: #fce8e6;
+    --created: #0b5cad; --created-bg: #e7f0fb; --error: #b3261e;
+    --epic: #8250df; --feature: #0b5cad; --pbi: #137333; --story: #137333; --task: #6b7280; --bug: #b3261e;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 13px/1.45 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: var(--ink); background: var(--bg); }
+  button { font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; padding: 5px 10px; }
+  button:hover { background: #f0f2f5; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { background: #094a8c; }
+  button.tiny { padding: 2px 7px; font-size: 11px; border-radius: 5px; }
+  input, select, textarea { font: inherit; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 5px 7px; background: #fff; }
+  textarea { width: 100%; resize: vertical; }
+  label { display: block; font-size: 11px; color: var(--muted); margin: 8px 0 3px; text-transform: uppercase; letter-spacing: .03em; }
+  .app { display: grid; grid-template-rows: auto 1fr auto; min-height: 100vh; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 14px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 15px; margin: 0 12px 0 0; font-weight: 600; }
+  header .field { display: flex; flex-direction: column; }
+  header .field > span { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+  header .grow { flex: 1; }
+  .toggle { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+  main { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(320px, 2fr) minmax(260px, 1.3fr); gap: 1px; background: var(--line); overflow: hidden; min-height: 520px; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } .pane { min-height: 240px; } }
+  .pane { background: var(--panel); overflow: auto; padding: 12px 14px; }
+  .pane h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 8px; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+  .summary { font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 1.7; }
+  .summary b { color: var(--ink); }
+  .tree { display: flex; flex-direction: column; gap: 6px; }
+  .card { border: 1px solid var(--line); border-left-width: 3px; border-radius: 7px; padding: 7px 9px; background: #fff; }
+  .card.sel { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .card .top { display: flex; align-items: center; gap: 7px; }
+  .card .title { font-weight: 500; flex: 1; }
+  .card .acts { display: flex; gap: 4px; margin-top: 6px; }
+  .badge { font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 10px; text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; }
+  .type-Epic { color: var(--epic); border: 1px solid var(--epic); }
+  .type-Feature { color: var(--feature); border: 1px solid var(--feature); }
+  .type-PBI { color: var(--pbi); border: 1px solid var(--pbi); }
+  .type-Story { color: var(--story); border: 1px solid var(--story); }
+  .type-Task { color: var(--task); border: 1px solid var(--task); }
+  .type-Bug { color: var(--bug); border: 1px solid var(--bug); }
+  .st-draft { color: var(--draft); background: #eef0f3; }
+  .st-approved { color: var(--approved); background: var(--approved-bg); }
+  .st-needs_rewrite { color: var(--rewrite); background: var(--rewrite-bg); }
+  .st-rejected { color: var(--rejected); background: var(--rejected-bg); }
+  .st-created { color: var(--created); background: var(--created-bg); }
+  .st-failed { color: var(--error); background: var(--rejected-bg); }
+  .muted { color: var(--muted); }
+  .warn { color: var(--rewrite); }
+  .err { color: var(--error); }
+  .adolink { font-size: 11px; color: var(--accent); text-decoration: none; }
+  .insp .fld { margin-bottom: 8px; }
+  .insp input, .insp select, .insp textarea { width: 100%; }
+  .ac-line { display: flex; gap: 5px; margin-bottom: 4px; }
+  .ac-line input { flex: 1; }
+  footer { background: var(--panel); border-top: 1px solid var(--line); padding: 8px 14px; max-height: 220px; overflow: auto; }
+  footer h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 6px; }
+  .log { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; white-space: pre-wrap; }
+  .pill { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 10px; margin-right: 6px; }
+  .pill.ok { background: var(--approved-bg); color: var(--approved); }
+  .pill.bad { background: var(--rejected-bg); color: var(--error); }
+  .pill.info { background: var(--accent-soft); color: var(--accent); }
+  .empty { color: var(--muted); padding: 20px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>ADO Planning Workspace</h1>
+    <label class="field"><span>Project</span><input id="f-project" placeholder="Project" size="14" /></label>
+    <label class="field"><span>Team</span><input id="f-team" placeholder="(optional)" size="12" /></label>
+    <label class="field"><span>Area Path</span><select id="f-area"><option value="">(default)</option></select></label>
+    <label class="field"><span>Iteration</span><select id="f-iter"><option value="">(default)</option></select></label>
+    <button id="b-context">Load Context</button>
+    <span class="grow"></span>
+    <span class="toggle"><input type="checkbox" id="f-dryrun" checked /><label for="f-dryrun" style="margin:0;text-transform:none;letter-spacing:0">Dry Run</label></span>
+    <button id="b-sync">Sync from ADO</button>
+    <button id="b-create" class="primary">Create Approved</button>
+  </header>
+
+  <main>
+    <section class="pane">
+      <h2>Source Narrative</h2>
+      <textarea id="f-narrative" rows="10" placeholder="Paste a project narrative, requirements, or WBS here..."></textarea>
+      <div class="row">
+        <button id="b-generate">Generate Structure</button>
+        <button id="b-import">Import JSON</button>
+        <button id="b-sample">Load Sample</button>
+      </div>
+      <div class="row">
+        <select id="f-format"><option value="json">JSON</option><option value="markdown">Markdown</option><option value="yaml">YAML</option></select>
+        <button id="b-export">Export Draft</button>
+        <button id="b-clear">Clear Draft</button>
+      </div>
+      <div class="summary" id="summary"></div>
+    </section>
+
+    <section class="pane">
+      <h2>Backlog Map</h2>
+      <div class="tree" id="tree"><div class="empty">No draft yet. Load Sample, Import JSON, or ask Claude to Generate Structure.</div></div>
+    </section>
+
+    <section class="pane insp">
+      <h2>Item Inspector</h2>
+      <div id="inspector"><div class="empty">Select an item to edit its fields.</div></div>
+    </section>
+  </main>
+
+  <footer>
+    <h2>Validation &amp; Creation Status</h2>
+    <div id="status"><span class="muted">Ready.</span></div>
+    <div class="log" id="log"></div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var TOOLS = {
+    context: "mcp_ado_app_planning_get_context",
+    generate: "mcp_ado_app_planning_generate_draft",
+    validate: "mcp_ado_app_planning_validate_draft",
+    create: "mcp_ado_app_planning_create_approved",
+    sync: "mcp_ado_app_planning_sync",
+    export: "mcp_ado_app_planning_export"
+  };
+
+  var TYPES = ["Epic", "Feature", "Product Backlog Item", "User Story", "Task", "Bug"];
+  var STATUSES = ["draft", "approved", "rejected", "needs_rewrite", "created", "failed"];
+
+  var state = { draft: null, selectedId: null, lastValidation: null };
+
+  // ---- MCP postMessage bridge -------------------------------------------
+  var bridge = (function(){
+    var seq = 0, pending = {};
+    function hosted(){ return window.parent && window.parent !== window; }
+    window.addEventListener("message", function(e){
+      var m = e.data;
+      if (!m || typeof m !== "object" || m.id == null) return;
+      var p = pending[m.id];
+      if (!p) return;
+      delete pending[m.id];
+      if (m.error) { p.reject(m.error); } else { p.resolve(m.result); }
+    });
+    function call(name, args){
+      return new Promise(function(resolve, reject){
+        if (!hosted()) { reject({ message: "Not running inside an MCP host. Use Import JSON or Load Sample." }); return; }
+        var id = "ui-" + (++seq);
+        pending[id] = { resolve: resolve, reject: reject };
+        window.parent.postMessage({ jsonrpc: "2.0", id: id, method: "tools/call", params: { name: name, arguments: args } }, "*");
+        setTimeout(function(){ if (pending[id]) { delete pending[id]; reject({ message: "Timed out calling " + name }); } }, 20000);
+      });
+    }
+    return { call: call, hosted: hosted };
+  })();
+
+  function toolJson(result){
+    var items = (result && result.content) || [];
+    for (var i = 0; i < items.length; i++) {
+      var t = items[i] && items[i].text;
+      if (typeof t === "string") { try { return JSON.parse(t); } catch (e) {} }
+    }
+    return null;
+  }
+
+  // ---- tiny DOM helper ---------------------------------------------------
+  function h(tag, attrs, kids){
+    var el = document.createElement(tag);
+    if (attrs) for (var k in attrs) {
+      if (k === "class") el.className = attrs[k];
+      else if (k === "text") el.textContent = attrs[k];
+      else if (k.indexOf("on") === 0 && typeof attrs[k] === "function") el.addEventListener(k.slice(2), attrs[k]);
+      else if (attrs[k] != null) el.setAttribute(k, attrs[k]);
+    }
+    if (kids) for (var i = 0; i < kids.length; i++) { var c = kids[i]; if (c != null) el.appendChild(typeof c === "string" ? document.createTextNode(c) : c); }
+    return el;
+  }
+  function byId(id){ return document.getElementById(id); }
+  function val(id){ return byId(id).value.trim(); }
+
+  // ---- status / log ------------------------------------------------------
+  function log(line){ var el = byId("log"); el.textContent = "[" + new Date().toLocaleTimeString() + "] " + line + "\n" + el.textContent; }
+  function setStatus(node){ var s = byId("status"); s.innerHTML = ""; s.appendChild(node); }
+
+  function typeClass(t){
+    if (t === "Product Backlog Item") return "type-PBI";
+    if (t === "User Story") return "type-Story";
+    return "type-" + t;
+  }
+
+  // ---- draft model helpers ----------------------------------------------
+  function flat(){ return (state.draft && state.draft.items) ? state.draft.items : []; }
+  function findItem(id){ var f = flat(); for (var i = 0; i < f.length; i++) if (f[i].localId === id) return f[i]; return null; }
+  function buildTree(items){
+    var byKey = {}, roots = [];
+    items.forEach(function(it){ byKey[it.localId] = it; it.__kids = []; });
+    items.forEach(function(it){ var p = it.parentLocalId && byKey[it.parentLocalId]; if (p && p !== it) p.__kids.push(it); else roots.push(it); });
+    return roots;
+  }
+  function counts(){
+    var f = flat(), c = { total: f.length, approved: 0, rejected: 0, rewrite: 0, created: 0 };
+    f.forEach(function(it){
+      if (it.status === "approved") c.approved++;
+      else if (it.status === "rejected") c.rejected++;
+      else if (it.status === "needs_rewrite") c.rewrite++;
+      else if (it.status === "created") c.created++;
+    });
+    return c;
+  }
+
+  // ---- rendering ---------------------------------------------------------
+  function render(){
+    renderSummary();
+    renderTree();
+    renderInspector();
+  }
+
+  function renderSummary(){
+    var words = val("f-narrative").split(/\s+/).filter(Boolean).length;
+    var c = counts();
+    var v = state.lastValidation;
+    var validLine = v ? (v.valid ? "valid" : (v.errors.length + " error(s)")) : "not validated";
+    byId("summary").innerHTML =
+      "<div>Narrative: <b>" + words + "</b> words</div>" +
+      "<div>Draft items: <b>" + c.total + "</b></div>" +
+      "<div>Approved: <b>" + c.approved + "</b> &middot; Rejected: <b>" + c.rejected + "</b> &middot; Rewrite: <b>" + c.rewrite + "</b> &middot; Created: <b>" + c.created + "</b></div>" +
+      "<div>Validation: <b>" + validLine + "</b></div>";
+  }
+
+  function statusBadge(s){ return h("span", { class: "badge st-" + s, text: s.replace("_", " ") }); }
+
+  function card(item, depth){
+    var box = h("div", { class: "card" + (item.localId === state.selectedId ? " sel" : ""), style: "margin-left:" + (depth * 18) + "px", "data-id": item.localId });
+    box.style.borderLeftColor = "var(--" + (item.type === "Epic" ? "epic" : item.type === "Feature" ? "feature" : item.type === "Task" ? "task" : item.type === "Bug" ? "bug" : "pbi") + ")";
+    var kidCount = item.__kids ? item.__kids.length : 0;
+    var top = h("div", { class: "top" }, [
+      h("span", { class: "badge " + typeClass(item.type), text: item.type }),
+      h("span", { class: "title", text: item.title || "(untitled)" }),
+      statusBadge(item.status),
+      kidCount ? h("span", { class: "muted", text: kidCount + " child" + (kidCount > 1 ? "ren" : "") }) : null,
+      item.adoId ? h("a", { class: "adolink", href: item.url || "#", target: "_blank", text: "#" + item.adoId }) : null
+    ]);
+    top.addEventListener("click", function(){ state.selectedId = item.localId; render(); });
+    box.appendChild(top);
+
+    var acts = h("div", { class: "acts" }, [
+      h("button", { class: "tiny", text: "Approve", onclick: function(e){ e.stopPropagation(); setItemStatus(item.localId, "approved"); } }),
+      h("button", { class: "tiny", text: "Reject", onclick: function(e){ e.stopPropagation(); setItemStatus(item.localId, "rejected"); } }),
+      h("button", { class: "tiny", text: "Rewrite", onclick: function(e){ e.stopPropagation(); setItemStatus(item.localId, "needs_rewrite"); } })
+    ]);
+    box.appendChild(acts);
+    return box;
+  }
+
+  function renderTree(){
+    var host = byId("tree");
+    host.innerHTML = "";
+    var f = flat();
+    if (!f.length) { host.appendChild(h("div", { class: "empty", text: "No draft yet. Load Sample, Import JSON, or ask Claude to Generate Structure." })); return; }
+    var roots = buildTree(f);
+    (function walk(nodes, depth){
+      nodes.forEach(function(n){ host.appendChild(card(n, depth)); if (n.__kids && n.__kids.length) walk(n.__kids, depth + 1); });
+    })(roots, 0);
+  }
+
+  function renderInspector(){
+    var host = byId("inspector");
+    host.innerHTML = "";
+    var item = state.selectedId ? findItem(state.selectedId) : null;
+    if (!item) { host.appendChild(h("div", { class: "empty", text: "Select an item to edit its fields." })); return; }
+
+    function field(labelText, node){ return h("div", { class: "fld" }, [h("label", { text: labelText }), node]); }
+    function text(prop){ var i = h("input", { value: item[prop] || "" }); i.addEventListener("input", function(){ item[prop] = i.value; }); return i; }
+    function num(prop){ var i = h("input", { type: "number", value: (item[prop] != null ? item[prop] : "") }); i.addEventListener("input", function(){ item[prop] = i.value === "" ? undefined : Number(i.value); }); return i; }
+
+    var typeSel = h("select", {}, TYPES.map(function(t){ return h("option", { value: t, text: t, selected: t === item.type ? "selected" : null }); }));
+    typeSel.addEventListener("change", function(){ item.type = typeSel.value; render(); });
+
+    var parents = flat().filter(function(p){ return p.localId !== item.localId; });
+    var parentSel = h("select", {}, [h("option", { value: "", text: "(root)" })].concat(parents.map(function(p){ return h("option", { value: p.localId, text: p.type + ": " + (p.title || p.localId), selected: p.localId === item.parentLocalId ? "selected" : null }); })));
+    parentSel.addEventListener("change", function(){ item.parentLocalId = parentSel.value || undefined; render(); });
+
+    var desc = h("textarea", { rows: "4" }); desc.value = item.description || ""; desc.addEventListener("input", function(){ item.description = desc.value; });
+
+    var acWrap = h("div", {});
+    function renderAc(){
+      acWrap.innerHTML = "";
+      (item.acceptanceCriteria || []).forEach(function(ac, idx){
+        var inp = h("input", { value: ac });
+        inp.addEventListener("input", function(){ item.acceptanceCriteria[idx] = inp.value; });
+        var del = h("button", { class: "tiny", text: "x", onclick: function(){ item.acceptanceCriteria.splice(idx, 1); renderAc(); } });
+        acWrap.appendChild(h("div", { class: "ac-line" }, [inp, del]));
+      });
+      acWrap.appendChild(h("button", { class: "tiny", text: "+ Add criterion", onclick: function(){ if (!item.acceptanceCriteria) item.acceptanceCriteria = []; item.acceptanceCriteria.push(""); renderAc(); } }));
+    }
+    renderAc();
+
+    host.appendChild(field("Local ID", h("input", { value: item.localId, disabled: "disabled" })));
+    host.appendChild(field("Type", typeSel));
+    host.appendChild(field("Title", text("title")));
+    host.appendChild(field("Description", desc));
+    host.appendChild(field("Acceptance Criteria", acWrap));
+    host.appendChild(field("Parent", parentSel));
+    host.appendChild(field("Area Path", text("areaPath")));
+    host.appendChild(field("Iteration Path", text("iterationPath")));
+    host.appendChild(field("Assigned To", text("assignedTo")));
+    host.appendChild(field("Tags (comma separated)", (function(){ var i = h("input", { value: (item.tags || []).join(", ") }); i.addEventListener("input", function(){ item.tags = i.value.split(",").map(function(s){ return s.trim(); }).filter(Boolean); }); return i; })()));
+    host.appendChild(field("Priority", num("priority")));
+    host.appendChild(field("Business Value", num("businessValue")));
+    host.appendChild(field("Effort", num("effort")));
+    host.appendChild(field("Status", (function(){ var s = h("select", {}, STATUSES.map(function(st){ return h("option", { value: st, text: st, selected: st === item.status ? "selected" : null }); })); s.addEventListener("change", function(){ item.status = s.value; render(); }); return s; })()));
+
+    host.appendChild(h("div", { class: "row" }, [
+      h("button", { class: "primary tiny", text: "Approve", onclick: function(){ setItemStatus(item.localId, "approved"); } }),
+      h("button", { class: "tiny", text: "Reject", onclick: function(){ setItemStatus(item.localId, "rejected"); } }),
+      item.url ? h("a", { class: "adolink", href: item.url, target: "_blank", text: "Open in ADO" }) : null
+    ]));
+  }
+
+  function setItemStatus(id, status){ var it = findItem(id); if (it) { it.status = status; render(); } }
+
+  // ---- draft lifecycle ---------------------------------------------------
+  function ensureDraft(){
+    if (!state.draft) state.draft = { draftId: "draft-local", project: val("f-project"), items: [] };
+    state.draft.project = val("f-project") || state.draft.project;
+    if (val("f-team")) state.draft.team = val("f-team");
+    return state.draft;
+  }
+
+  function loadDraft(draft){
+    state.draft = draft;
+    state.selectedId = (draft.items && draft.items[0]) ? draft.items[0].localId : null;
+    state.lastValidation = null;
+    if (draft.project) byId("f-project").value = draft.project;
+    if (draft.team) byId("f-team").value = draft.team;
+    render();
+  }
+
+  var SAMPLE = {
+    draftId: "draft-sample",
+    project: "InventoryWizard",
+    team: "InventoryWizard Team",
+    mode: "epic-feature-pbi-task",
+    items: [
+      { localId: "epic-001", type: "Epic", title: "Product Foundation", description: "Core platform for inventory management.", status: "draft" },
+      { localId: "feature-001", type: "Feature", title: "Inventory Item Management", description: "Create, edit, and track inventory items.", parentLocalId: "epic-001", status: "draft" },
+      { localId: "pbi-001", type: "Product Backlog Item", title: "User can create an inventory item", description: "As a stock manager I want to add an item so it is tracked.", acceptanceCriteria: ["Given I am on the Items screen", "When I enter valid item details and save", "Then the item appears in the list"], parentLocalId: "feature-001", status: "approved" },
+      { localId: "task-001", type: "Task", title: "Build create-item form", description: "Implement the form UI and validation.", parentLocalId: "pbi-001", status: "approved" },
+      { localId: "pbi-002", type: "Product Backlog Item", title: "User can edit item pricing", description: "As a manager I want to update prices.", acceptanceCriteria: ["Given an existing item", "When I change the price and save", "Then the new price is stored"], parentLocalId: "feature-001", status: "draft" }
+    ]
+  };
+
+  // ---- actions -----------------------------------------------------------
+  function pill(cls, t){ return h("span", { class: "pill " + cls, text: t }); }
+
+  function showValidation(v){
+    state.lastValidation = v;
+    var node = h("div", {}, [
+      v.valid ? pill("ok", "Valid") : pill("bad", v.errors.length + " error(s)"),
+      pill("info", (v.warnings ? v.warnings.length : 0) + " warning(s)")
+    ]);
+    (v.errors || []).forEach(function(e){ node.appendChild(h("div", { class: "err", text: "ERROR " + e.code + (e.localId ? " [" + e.localId + "]" : "") + ": " + e.message })); });
+    (v.warnings || []).forEach(function(w){ node.appendChild(h("div", { class: "warn", text: w.severity.toUpperCase() + " " + w.code + (w.localId ? " [" + w.localId + "]" : "") + ": " + w.message })); });
+    setStatus(node);
+    renderSummary();
+  }
+
+  function doValidate(){
+    var draft = ensureDraft();
+    if (!draft.items.length) { log("Nothing to validate."); return; }
+    if (!bridge.hosted()) { log("Validate requires an MCP host."); return; }
+    log("Validating draft...");
+    bridge.call(TOOLS.validate, { project: draft.project, draft: draft }).then(function(r){
+      var v = toolJson(r);
+      if (!v) { log("Validation returned no JSON."); return; }
+      if (v.normalizedDraft) loadDraftKeepSelection(v.normalizedDraft);
+      showValidation(v);
+      log("Validation complete: " + (v.valid ? "valid" : v.errors.length + " errors"));
+    }).catch(function(err){ log("Validate failed: " + (err && err.message || err)); });
+  }
+
+  function loadDraftKeepSelection(draft){ var sel = state.selectedId; state.draft = draft; if (draft.project) byId("f-project").value = draft.project; render(); state.selectedId = sel; }
+
+  function doCreate(){
+    var draft = ensureDraft();
+    var dryRun = byId("f-dryrun").checked;
+    var c = counts();
+    if (!c.approved) { log("No approved items to create."); return; }
+    if (!dryRun) {
+      var ok = window.confirm("Create " + c.approved + " approved item(s) in Azure DevOps?\nProject: " + draft.project + "\n\nThis writes to ADO and cannot be undone here.");
+      if (!ok) { log("Create cancelled."); return; }
+    }
+    if (!bridge.hosted()) { log("Create requires an MCP host."); return; }
+    log((dryRun ? "Dry-run" : "Creating") + " approved items...");
+    var options = { dryRun: dryRun };
+    if (val("f-area")) options.areaPath = val("f-area");
+    if (byId("f-iter").value) options.iterationPath = byId("f-iter").value;
+    bridge.call(TOOLS.create, { project: draft.project, draft: draft, options: options }).then(function(r){
+      var res = toolJson(r);
+      if (!res) { log("Create returned no JSON."); return; }
+      showCreateResult(res);
+    }).catch(function(err){ log("Create failed: " + (err && err.message || err)); });
+  }
+
+  function showCreateResult(res){
+    if (res.errors && res.errors.length) { showValidation({ valid: false, errors: res.errors, warnings: res.warnings || [] }); log("Create blocked by validation."); return; }
+    var s = res.summary || {};
+    var node = h("div", {}, [
+      pill(res.dryRun ? "info" : "ok", res.dryRun ? "Dry run" : "Created"),
+      h("span", { text: "Epics " + (s.epics || 0) + " | Features " + (s.features || 0) + " | PBIs " + (s.pbis || 0) + " | Tasks " + (s.tasks || 0) })
+    ]);
+    if (res.failed && res.failed.length) node.appendChild(h("div", { class: "err", text: res.failed.length + " failed" }));
+    (res.failed || []).forEach(function(f){ node.appendChild(h("div", { class: "err", text: "FAILED [" + f.localId + "]: " + f.error })); });
+    (res.warnings || []).forEach(function(w){ node.appendChild(h("div", { class: "warn", text: w.code + ": " + w.message })); });
+    setStatus(node);
+    // Fold created ids back into the draft.
+    if (!res.dryRun) {
+      (res.created || []).forEach(function(cr){ var it = findItem(cr.localId); if (it) { it.adoId = cr.adoId; it.url = cr.url; it.status = "created"; } });
+      render();
+    }
+    log((res.dryRun ? "Dry run" : "Creation") + " done: " + ((res.created || []).length) + " item(s), " + ((res.failed || []).length) + " failed.");
+  }
+
+  function doSync(){
+    var ids = flat().filter(function(it){ return it.adoId; }).map(function(it){ return it.adoId; });
+    if (!ids.length) { log("No created items to sync."); return; }
+    if (!bridge.hosted()) { log("Sync requires an MCP host."); return; }
+    log("Syncing " + ids.length + " item(s) from ADO...");
+    bridge.call(TOOLS.sync, { project: ensureDraft().project, workItemIds: ids }).then(function(r){
+      var res = toolJson(r);
+      if (!res) { log("Sync returned no JSON."); return; }
+      (res.items || []).forEach(function(si){ var it = flat().filter(function(x){ return x.adoId === si.adoId; })[0]; if (it) { it.state = si.state; } });
+      render();
+      log("Sync done: " + (res.items || []).length + " refreshed, " + (res.missing || []).length + " missing.");
+    }).catch(function(err){ log("Sync failed: " + (err && err.message || err)); });
+  }
+
+  function doGenerate(){
+    var draft = ensureDraft();
+    var narrative = val("f-narrative");
+    if (!narrative) { log("Enter a narrative first."); return; }
+    if (!bridge.hosted()) { log("Generate requires an MCP host. You can Import JSON instead."); return; }
+    log("Requesting generation contract...");
+    bridge.call(TOOLS.generate, { project: draft.project, team: val("f-team") || undefined, narrative: narrative }).then(function(r){
+      var res = toolJson(r);
+      var node = h("div", {}, [pill("info", "Generation contract ready")]);
+      node.appendChild(h("div", { text: "Ask Claude to generate the backlog from your narrative; it will produce the draft JSON and validate it. The structured contract was returned to the model." }));
+      if (res && res.draftId) draft.draftId = res.draftId;
+      setStatus(node);
+      log("Generation contract returned (draftId " + (res && res.draftId) + ").");
+    }).catch(function(err){ log("Generate failed: " + (err && err.message || err)); });
+  }
+
+  function doExport(){
+    var draft = ensureDraft();
+    var fmt = byId("f-format").value;
+    if (!draft.items.length) { log("Nothing to export."); return; }
+    if (bridge.hosted()) {
+      bridge.call(TOOLS.export, { draft: draft, format: fmt }).then(function(r){
+        var res = toolJson(r);
+        if (res && res.content) downloadText(res.content, "planning-draft." + (fmt === "markdown" ? "md" : fmt));
+        log("Exported as " + fmt + ".");
+      }).catch(function(err){ log("Export failed: " + (err && err.message || err)); });
+    } else {
+      downloadText(JSON.stringify(draft, null, 2), "planning-draft.json");
+      log("Exported draft as JSON (offline).");
+    }
+  }
+
+  function downloadText(text, name){
+    try {
+      var blob = new Blob([text], { type: "text/plain" });
+      var a = h("a", { href: URL.createObjectURL(blob), download: name });
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    } catch (e) { log("Download blocked by host; content logged."); log(text.slice(0, 4000)); }
+  }
+
+  function doImport(){
+    var raw = window.prompt("Paste PlanningDraft JSON:");
+    if (!raw) return;
+    try {
+      var parsed = JSON.parse(raw);
+      if (!parsed.items) throw new Error("missing items[]");
+      loadDraft(parsed);
+      log("Imported draft with " + parsed.items.length + " item(s).");
+    } catch (e) { log("Import failed: " + e.message); }
+  }
+
+  function doContext(){
+    var project = val("f-project");
+    if (!project) { log("Enter a project first."); return; }
+    if (!bridge.hosted()) { log("Load Context requires an MCP host."); return; }
+    log("Loading context for " + project + "...");
+    bridge.call(TOOLS.context, { project: project, team: val("f-team") || undefined }).then(function(r){
+      var ctx = toolJson(r);
+      if (!ctx) { log("Context returned no JSON."); return; }
+      fillSelect("f-area", ctx.areaPaths || [], ctx.defaultAreaPath);
+      fillSelect("f-iter", ctx.iterationPaths || [], ctx.defaultIterationPath);
+      var node = h("div", {}, [pill("ok", "Context loaded"), h("span", { text: (ctx.teams || []).length + " team(s), " + (ctx.areaPaths || []).length + " area(s), " + (ctx.iterationPaths || []).length + " iteration(s)" })]);
+      (ctx.warnings || []).forEach(function(w){ node.appendChild(h("div", { class: "warn", text: w })); });
+      setStatus(node);
+      log("Context loaded. PBI type hint: " + (ctx.processHints && ctx.processHints.pbiTypeName));
+    }).catch(function(err){ log("Context failed: " + (err && err.message || err)); });
+  }
+
+  function fillSelect(id, values, def){
+    var sel = byId(id);
+    sel.innerHTML = "";
+    sel.appendChild(h("option", { value: "", text: "(default)" }));
+    values.forEach(function(v){ sel.appendChild(h("option", { value: v, text: v, selected: v === def ? "selected" : null })); });
+  }
+
+  // ---- wire up -----------------------------------------------------------
+  byId("b-context").addEventListener("click", doContext);
+  byId("b-generate").addEventListener("click", doGenerate);
+  byId("b-import").addEventListener("click", doImport);
+  byId("b-sample").addEventListener("click", function(){ loadDraft(JSON.parse(JSON.stringify(SAMPLE))); log("Sample draft loaded."); });
+  byId("b-export").addEventListener("click", doExport);
+  byId("b-clear").addEventListener("click", function(){ state.draft = null; state.selectedId = null; state.lastValidation = null; render(); log("Draft cleared."); });
+  byId("b-create").addEventListener("click", doCreate);
+  byId("b-sync").addEventListener("click", doSync);
+  byId("f-narrative").addEventListener("input", renderSummary);
+  // Validate button lives in the footer status area via keyboard? Provide an explicit one.
+  var validateBtn = h("button", { class: "tiny", text: "Validate Draft", onclick: doValidate });
+  byId("status").parentNode.insertBefore(validateBtn, byId("status"));
+
+  // Bootstrap context, if the host injected one.
+  try {
+    var boot = window.__ADO_PLANNING_BOOTSTRAP__;
+    if (boot) { if (boot.project) byId("f-project").value = boot.project; if (boot.team) byId("f-team").value = boot.team; }
+  } catch (e) {}
+
+  render();
+  log(bridge.hosted() ? "Connected to MCP host." : "Standalone mode — Import JSON or Load Sample to begin.");
+})();
+</script>
+</body>
+</html>

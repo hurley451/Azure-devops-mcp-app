@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 import { createHash } from "crypto";
+import { readFileSync } from "fs";
 import { PLANNING_UI_HTML } from "./ui.js";
 
 /**
@@ -12,13 +13,22 @@ import { PLANNING_UI_HTML } from "./ui.js";
 export const PLANNING_UI_MIME = "text/html;profile=mcp-app";
 
 /**
- * Short content hash so the UI resource URI changes whenever the HTML changes.
- * Hosts may cache UI resources by URI, so a stable-but-cache-busted URI avoids
- * serving stale UI after a rebuild.
+ * Resolve the UI HTML. By default this is the compiled-in copy (generated from
+ * ui/workspace.html at build time). For live iteration without a rebuild or
+ * server restart, set ADO_PLANNING_UI_PATH to an absolute path to an HTML file;
+ * it is re-read on every call so editing that file updates the UI immediately.
  */
-export const PLANNING_UI_BUILD_HASH = createHash("sha256").update(PLANNING_UI_HTML).digest("hex").slice(0, 12);
-
-export const PLANNING_UI_URI = `ui://ado-planning/${PLANNING_UI_BUILD_HASH}/index.html`;
+function loadHtml(): string {
+  const override = process.env.ADO_PLANNING_UI_PATH;
+  if (override) {
+    try {
+      return readFileSync(override, "utf8");
+    } catch {
+      // Fall back to the compiled-in copy if the override path is unreadable.
+    }
+  }
+  return PLANNING_UI_HTML;
+}
 
 export interface PlanningUiResource {
   uri: string;
@@ -27,6 +37,13 @@ export interface PlanningUiResource {
   buildHash: string;
 }
 
+/**
+ * Build the UI resource descriptor. The URI embeds a content hash so it changes
+ * whenever the HTML changes (hosts may cache UI resources by URI). Computed per
+ * call so an ADO_PLANNING_UI_PATH override is reflected without a restart.
+ */
 export function getPlanningUiResource(): PlanningUiResource {
-  return { uri: PLANNING_UI_URI, mimeType: PLANNING_UI_MIME, html: PLANNING_UI_HTML, buildHash: PLANNING_UI_BUILD_HASH };
+  const html = loadHtml();
+  const buildHash = createHash("sha256").update(html).digest("hex").slice(0, 12);
+  return { uri: `ui://ado-planning/${buildHash}/index.html`, mimeType: PLANNING_UI_MIME, html, buildHash };
 }

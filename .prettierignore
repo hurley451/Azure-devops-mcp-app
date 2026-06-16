@@ -4,3 +4,8 @@ dist/
 coverage/
 
 *.log*
+
+# Planning MCP App UI: workspace.html is the hand-edited source, ui.ts is generated from it.
+# Prettier would reformat the embedded JS/CSS and churn the content hash.
+src/tools/mcp-apps/planning/ui/workspace.html
+src/tools/mcp-apps/planning/ui.ts

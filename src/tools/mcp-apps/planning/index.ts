@@ -74,20 +74,22 @@ function configurePlanningTools(server: McpServer, tokenProvider: () => Promise<
     },
     async ({ project, team }) => {
       try {
+        // Read fresh each call so an ADO_PLANNING_UI_PATH override is picked up without a restart.
+        const live = getPlanningUiResource();
         const bootstrap = { project: project ?? null, team: team ?? null };
         // Inject the selected project/team into this call's HTML so the UI prefills the fields.
         const bootstrapScript = `<script>window.__ADO_PLANNING_BOOTSTRAP__ = ${JSON.stringify(bootstrap).replace(/</g, "\\u003c")};</script>`;
-        const html = ui.html.replace("<!--BOOTSTRAP-->", bootstrapScript);
+        const html = live.html.replace("<!--BOOTSTRAP-->", bootstrapScript);
         return {
           content: [
             {
               type: "resource" as const,
-              resource: { uri: ui.uri, mimeType: ui.mimeType, text: html, _meta: { ui: { "prefersBorder": true, "preferred-frame-size": { width: 1100, height: 760 } } } },
+              resource: { uri: live.uri, mimeType: live.mimeType, text: html, _meta: { ui: { "prefersBorder": true, "preferred-frame-size": { width: 1100, height: 760 } } } },
             },
             {
               type: "text" as const,
               text:
-                `Opened the ADO Planning Workspace (build ${ui.buildHash}). If your host does not render the inline UI, you can still drive planning via the tools: ` +
+                `Opened the ADO Planning Workspace (build ${live.buildHash}). If your host does not render the inline UI, you can still drive planning via the tools: ` +
                 `${PLANNING_TOOLS.get_context}, ${PLANNING_TOOLS.generate_draft}, ${PLANNING_TOOLS.validate_draft}, ${PLANNING_TOOLS.create_approved}, ${PLANNING_TOOLS.sync}, ${PLANNING_TOOLS.export}. ` +
                 `Bootstrap context: ${JSON.stringify(bootstrap)}`,
             },
