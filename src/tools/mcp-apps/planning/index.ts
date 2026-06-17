@@ -86,7 +86,12 @@ function configurePlanningTools(server: McpServer, connectionProvider: () => Pro
       try {
         // Read fresh each call so an ADO_PLANNING_UI_PATH override is picked up without a restart.
         const live = getPlanningUiResource();
-        const bootstrap = { project: project ?? null, team: team ?? null };
+        // Optional curated skill list for the card "Run skill" control (comma-separated env).
+        const skills = (process.env.ADO_PLANNING_SKILLS ?? "")
+          .split(",")
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0);
+        const bootstrap = { project: project ?? null, team: team ?? null, skills: skills.length > 0 ? skills : undefined };
         // Inject the selected project/team into this call's HTML so the UI prefills the fields.
         const bootstrapScript = `<script>window.__ADO_PLANNING_BOOTSTRAP__ = ${JSON.stringify(bootstrap).replace(/</g, "\\u003c")};</script>`;
         const html = live.html.replace("<!--BOOTSTRAP-->", bootstrapScript);
