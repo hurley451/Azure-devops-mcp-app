@@ -85,6 +85,13 @@ detail editor let you edit them; **Save to ADO** writes changes back via `update
 (honoring the Dry Run toggle). The working draft is persisted in the browser (localStorage)
 so it survives reopen. **Focus** (single-pane) and **Full screen** expand the inline frame.
 
+Each card also has a **Run skill…** dropdown: picking a skill asks the host to run
+`Run: <skill> on <work item> …` against that item (the item content is spotlight-wrapped as
+untrusted data), with a clipboard fallback if the host doesn't accept a UI→chat prompt. The
+skill list is configurable via the `ADO_PLANNING_SKILLS` environment variable (comma-separated;
+e.g. `ADO_PLANNING_SKILLS="/security-review,/code-review,feature-dev"`); a curated default is
+used when unset.
+
 ### How generation works (model-mediated, "Option A")
 
 This MCP server does **not** call an LLM itself. `generate_draft` returns precise

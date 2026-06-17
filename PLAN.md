@@ -153,6 +153,12 @@ runtime deps. Test count 1010 → **1022**; full `scan_drift` = 0.
       State, sticky save-row; "Save to ADO" → `update_items` (dry-run aware; empty = deliberate clear).
 - [x] **R7.6 Persistence** (`50676c0`). localStorage persist/restore of the working draft (best-effort)
       so the loop survives reopen; Load Backlog = reload-from-ADO.
+- [x] **R7.7 Run-skill-on-item** (`276b816`). Each card has a "Run skill…" dropdown that emits an
+      mcp-ui `prompt` action to the host (`postMessage {type:"prompt"}` + `sendPrompt` if present) with
+      a clipboard fallback, carrying `Run: <skill> …` + the item content spotlight-wrapped (128-bit
+      CSPRNG nonce). Skill list configurable via `ADO_PLANNING_SKILLS` env (injected through `open`'s
+      bootstrap). **Host caveat:** whether Claude Desktop's MCP Apps host honors a UI→chat `prompt`
+      action is unverified; the clipboard fallback works regardless.
 - **Docs/deploy:** `docs/MCP_APPS_PLANNING.md` + README updated; main `dist` rebuilt with the new tools
   - UI (respawn the Desktop connector to pick it up). **Acceptance (manual, post-respawn):** open for
     `mungepoint`, Load Backlog shows 250/251/252, edit one + Save writes back, add a child User Story
