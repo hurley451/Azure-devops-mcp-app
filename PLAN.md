@@ -101,8 +101,13 @@ The Desktop server previously launched `dist` from the ephemeral worktree
   in the **main checkout** `/Users/mhurley/Development/Azure-devops-mcp-app` so its `dist` carries R6
   (verified `deriveProcessHints` in `dist/.../context.js`). Edited `claude_desktop_config.json`
   (backup `claude_desktop_config.json.bak-r4`) to launch `ado-planning` from the main checkout's
-  `dist/index.js` (durable, not a worktree). No `ADO_PLANNING_UI_PATH` override — prod uses the
-  compiled-in UI.
+  `dist/index.js` (durable, not a worktree).
+- **Live-reload enabled (2026-06-17):** set `env.ADO_PLANNING_UI_PATH` →
+  `…/Azure-devops-mcp-app/src/tools/mcp-apps/planning/ui/workspace.html` on the `ado-planning` server
+  (backup `claude_desktop_config.json.bak-uipath`). Pure-UI edits to that file (or an FF to main) now
+  reflect on the next `open` with **no respawn**. Server-code changes still need rebuild + respawn.
+  Cosmetic: under the override the registered `ui://` hash is the build-time one while `open` returns
+  the live hash (the dev-only mismatch documented in `index.ts`).
 - **Remaining manual step (user):** respawn the `ado-planning` connector (toggle off/on or quit+reopen
   Claude Desktop) so the new path + R6 take effect. Then optionally re-verify R6 live: `get_context`
   on the Agile `mcp-test-proj` (no team) should report `pbiTypeName: "User Story"`, and a corrected
