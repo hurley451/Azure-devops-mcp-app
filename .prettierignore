@@ -5,6 +5,11 @@ coverage/
 
 *.log*
 
+# Nested git worktrees / local session state — never format another checkout's tree.
+# (The `format` script is `prettier --write .`; without this, a commit from the parent
+# checkout reformats every worktree under here, churning their generated/ignored files.)
+.claude/
+
 # Planning MCP App UI: workspace.html is the hand-edited source, ui.ts is generated from it.
 # Prettier would reformat the embedded JS/CSS and churn the content hash.
 src/tools/mcp-apps/planning/ui/workspace.html
