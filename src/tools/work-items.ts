@@ -3,6 +3,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { Readable } from "stream";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebApi } from "azure-devops-node-api";
 import { WorkItemExpand, WorkItemRelation } from "azure-devops-node-api/interfaces/WorkItemTrackingInterfaces.js";
@@ -35,6 +36,7 @@ const WORKITEM_TOOLS = {
   work_item_unlink: "wit_work_item_unlink",
   add_artifact_link: "wit_add_artifact_link",
   get_work_item_attachment: "wit_get_work_item_attachment",
+  create_attachment: "wit_create_attachment",
   query_by_wiql: "wit_query_by_wiql",
 };
 
@@ -828,6 +830,62 @@ function configureWorkItemTools(server: McpServer, tokenProvider: () => Promise<
         const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         return {
           content: [{ type: "text", text: `Error updating work item: ${errorMessage}` }],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.tool(
+    WORKITEM_TOOLS.create_attachment,
+    "Upload a base64-encoded file as an attachment and link it to a work item as an AttachedFile relation (e.g. a screenshot from a Teams message). Returns the attachment id and URL.",
+    {
+      project: z.string().describe("The name or ID of the Azure DevOps project."),
+      workItemId: z.coerce.number().min(1).describe("The ID of the work item to attach the file to."),
+      fileName: z.string().describe("The file name for the attachment, e.g., 'screenshot.png'."),
+      base64Content: z.string().describe("The file content, base64-encoded."),
+      comment: z.string().optional().describe("Optional comment describing the attachment."),
+    },
+    async ({ project, workItemId, fileName, base64Content, comment }) => {
+      try {
+        const connection = await connectionProvider();
+        const workItemApi = await connection.getWorkItemTrackingApi();
+
+        const buffer = Buffer.from(base64Content, "base64");
+        if (buffer.length === 0) {
+          return { content: [{ type: "text", text: "Attachment content was empty after base64 decode." }], isError: true };
+        }
+        const stream = Readable.from(buffer);
+        const attachment = await workItemApi.createAttachment({}, stream, fileName, undefined, project);
+
+        if (!attachment?.url) {
+          return { content: [{ type: "text", text: "Attachment upload returned no URL." }], isError: true };
+        }
+
+        const patchDocument = [
+          {
+            op: "add",
+            path: "/relations/-",
+            value: {
+              rel: "AttachedFile",
+              url: attachment.url,
+              attributes: { name: fileName, comment: comment ?? "" },
+            },
+          },
+        ];
+
+        const workItem = await workItemApi.updateWorkItem({}, patchDocument, workItemId, project);
+        if (!workItem) {
+          return { content: [{ type: "text", text: "Work item attachment link failed." }], isError: true };
+        }
+
+        return {
+          content: [{ type: "text", text: JSON.stringify({ attachmentId: attachment.id, url: attachment.url, workItemId, fileName }, null, 2) }],
+        };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [{ type: "text", text: `Error creating attachment: ${errorMessage}` }],
           isError: true,
         };
       }
